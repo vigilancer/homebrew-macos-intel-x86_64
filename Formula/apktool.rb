@@ -5,11 +5,12 @@ class Apktool < Formula
   sha256 "dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423"
   license "Apache-2.0"
 
-  depends_on "openjdk"
-
   def install
     libexec.install "apktool_#{version}.jar"
-    bin.write_jar_script libexec/"apktool_#{version}.jar", "apktool"
+    (bin/"apktool").write <<~SHELL
+      #!/bin/bash
+      exec "${JAVA_HOME:+$JAVA_HOME/bin/}java" -jar "#{libexec}/apktool_#{version}.jar" "$@"
+    SHELL
   end
 
   test do
