@@ -1,0 +1,65 @@
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+index 83ec07682a..4cac73b2e5 100644
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -707,6 +707,10 @@ module Homebrew
+         default:     true,
+         hidden:      true,
+       },
++      HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS:     {
++        description: "If set, do not warn that Homebrew does not support this macOS version or architecture.",
++        boolean:     :set,
++      },
+       HOMEBREW_SIMULATE_MACOS_ON_LINUX:          {
+         description: "If set, running Homebrew on Linux will simulate certain macOS code paths. This is useful " \
+                      "when auditing macOS formulae while on Linux.",
+diff --git a/Library/Homebrew/extend/os/mac/diagnostic.rb b/Library/Homebrew/extend/os/mac/diagnostic.rb
+index 5c697f8fa1..4689fae9ac 100644
+--- a/Library/Homebrew/extend/os/mac/diagnostic.rb
++++ b/Library/Homebrew/extend/os/mac/diagnostic.rb
+@@ -129,6 +129,7 @@ module OS
+         sig { returns(T.nilable(::Homebrew::Diagnostic::Finding)) }
+         def check_for_unsupported_macos
+           return if Homebrew::EnvConfig.developer?
++          return if Homebrew::EnvConfig.shut_up_about_unsupported_os?
+           return if ENV["HOMEBREW_INTEGRATION_TEST"]
+ 
+           tier = 2
+diff --git a/Library/Homebrew/test/os/mac/diagnostic_spec.rb b/Library/Homebrew/test/os/mac/diagnostic_spec.rb
+index af5cfe1b66..fb84dd99fb 100644
+--- a/Library/Homebrew/test/os/mac/diagnostic_spec.rb
++++ b/Library/Homebrew/test/os/mac/diagnostic_spec.rb
+@@ -9,6 +9,17 @@ RSpec.describe Homebrew::Diagnostic::Checks do
+   describe "#check_for_unsupported_macos" do
+     before do
+       ENV.delete("HOMEBREW_DEVELOPER")
++      ENV.delete("HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS")
++    end
++
++    it "skips the warning when HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS is set" do
++      ENV["HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS"] = "1"
++      macos_version = MacOSVersion.new("26")
++      allow(Hardware::CPU).to receive(:intel?).and_return(true)
++      allow(OS::Mac).to receive_messages(version: macos_version, full_version: macos_version)
++      allow(OS::Mac.version).to receive_messages(outdated_release?: false, prerelease?: false)
++
++      expect(checks.check_for_unsupported_macos).to be_nil
+     end
+ 
+     it "reports Tier 2 for a pre-release macOS version on Apple Silicon" do
+diff --git a/docs/Manpage.md b/docs/Manpage.md
+index b8fbadb5ee..e8cbf4f747 100644
+--- a/docs/Manpage.md
++++ b/docs/Manpage.md
+@@ -5024,6 +5024,11 @@ command execution (e.g. `$(cat file)`).
+   
+   *Default:* `https://pypi.org/simple`.
+ 
++`HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS`
++
++: If set, do not warn that Homebrew does not support this macOS version or
++  architecture.
++
+ `HOMEBREW_SIMULATE_MACOS_ON_LINUX`
+ 
+ : If set, running Homebrew on Linux will simulate certain macOS code paths. This

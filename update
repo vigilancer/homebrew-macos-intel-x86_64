@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+brew=$(CDPATH= cd -- "$manage/../brew" && pwd)
+upstream=https://github.com/Homebrew/brew
+patch=$manage/unsupported-os.patch
+
+latest=$(
+  git ls-remote --tags "$upstream" |
+    sed -n 's#.*refs/tags/\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$#\1#p' |
+    sort -V |
+    tail -n 1
+)
+if [ -z "$latest" ]; then
+  echo "no upstream X.Y.Z tag" >&2
+  exit 1
+fi
+
+git -C "$brew" fetch --depth 1 "$upstream" "refs/tags/${latest}:refs/tags/${latest}"
+tag=$(git -C "$brew" rev-parse "refs/tags/${latest}^{}")
+parent=$(git -C "$brew" rev-parse --verify HEAD^ 2>/dev/null || true)
+if [ "$parent" = "$tag" ]; then
+  echo "brew is already ${latest} plus patch"
+  exit 0
+fi
+
+git -C "$brew" checkout -B master "$tag"
+git -C "$brew" apply --index "$patch"
+git -C "$brew" commit -m "Apply unsupported-os.patch on ${latest}"
+echo "brew master moved to ${latest} plus patch"
