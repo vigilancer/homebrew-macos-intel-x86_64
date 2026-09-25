@@ -1,8 +1,8 @@
 diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
-index 83ec07682a..4cac73b2e5 100644
+index 8a3dc94..0e55b47 100644
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -707,6 +707,10 @@ module Homebrew
+@@ -701,6 +701,10 @@ module Homebrew
          default:     true,
          hidden:      true,
        },
@@ -14,7 +14,7 @@ index 83ec07682a..4cac73b2e5 100644
          description: "If set, running Homebrew on Linux will simulate certain macOS code paths. This is useful " \
                       "when auditing macOS formulae while on Linux.",
 diff --git a/Library/Homebrew/extend/os/mac/diagnostic.rb b/Library/Homebrew/extend/os/mac/diagnostic.rb
-index 5c697f8fa1..4689fae9ac 100644
+index 5c697f8..4689fae 100644
 --- a/Library/Homebrew/extend/os/mac/diagnostic.rb
 +++ b/Library/Homebrew/extend/os/mac/diagnostic.rb
 @@ -129,6 +129,7 @@ module OS

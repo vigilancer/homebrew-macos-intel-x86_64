@@ -1,0 +1,49 @@
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+index 8a3dc94..0e55b47 100644
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -168,6 +168,10 @@ module Homebrew
+         description:  "Use this as the browser when opening project homepages.",
+         default_text: "`$BROWSER` or the OS's default browser.",
+       },
++      HOMEBREW_BUILD_FROM_SOURCE:                {
++        description: "If set, build formulae and their dependencies from source even when bottles are available.",
++        boolean:     :set,
++      },
+       **BUNDLE_DISABLE_ENVS.select { |env,| env < :HOMEBREW_BUNDLE_DESCRIBE },
+       HOMEBREW_BUNDLE_DESCRIBE:                  {
+         description: "If set, add a description comment above each line in `brew bundle dump` and " \
+diff --git a/Library/Homebrew/fetch.rb b/Library/Homebrew/fetch.rb
+index 9bbd804..6e315cc 100644
+--- a/Library/Homebrew/fetch.rb
++++ b/Library/Homebrew/fetch.rb
+@@ -17,6 +17,7 @@ module Homebrew
+       bottle = formula.bottle
+ 
+       return true if force_bottle && bottle.present?
++      return false if Homebrew::EnvConfig.build_from_source?
+       if os.present?
+         return true
+       elsif ENV["HOMEBREW_TEST_GENERIC_OS"].present?
+diff --git a/Library/Homebrew/formula_installer.rb b/Library/Homebrew/formula_installer.rb
+index bdafc63..05bffe7 100644
+--- a/Library/Homebrew/formula_installer.rb
++++ b/Library/Homebrew/formula_installer.rb
+@@ -239,7 +239,8 @@ class FormulaInstaller
+ 
+   sig { returns(T::Boolean) }
+   def build_from_source?
+-    @build_from_source_formulae.include?(formula.full_name)
++    Homebrew::EnvConfig.build_from_source? ||
++      @build_from_source_formulae.include?(formula.full_name)
+   end
+ 
+   sig { returns(T::Boolean) }
+@@ -311,6 +312,7 @@ class FormulaInstaller
+   sig { params(dep: Formula, build: BuildOptions).returns(T::Boolean) }
+   def install_bottle_for?(dep, build)
+     return pour_bottle? if dep == formula
++    return false if Homebrew::EnvConfig.build_from_source?
+ 
+     (
+       @build_from_source_formulae.exclude?(dep.full_name) &&

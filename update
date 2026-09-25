@@ -4,7 +4,8 @@ set -eu
 manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 brew=$manage/brew
 upstream=https://github.com/Homebrew/brew
-patch=$manage/unsupported-os.patch
+patchdir=$manage/patches
+patches="0001-unsupported-os.patch 0002-build-from-source.patch"
 
 latest=$(
   git ls-remote --tags "$upstream" |
@@ -29,7 +30,6 @@ git -C "$brew" fetch --depth 1 "$upstream" \
   "refs/tags/${latest}:refs/upstream-tags/${latest}"
 upstream_commit=$(git -C "$brew" rev-parse "refs/upstream-tags/${latest}^{}")
 head=$(git -C "$brew" rev-parse --verify HEAD 2>/dev/null || true)
-parent=$(git -C "$brew" rev-parse --verify HEAD^ 2>/dev/null || true)
 tag_commit=$(git -C "$brew" rev-parse --verify "refs/tags/${latest}^{}" 2>/dev/null || true)
 
 move_tag() {
@@ -39,19 +39,17 @@ The upstream tag pointed at ${upstream_commit}.
 It was moved on purpose and now points at this commit."
 }
 
-if [ -n "$head" ] && [ "$parent" = "$upstream_commit" ] && [ "$head" = "$tag_commit" ]; then
-  echo "brew is already ${latest} plus patch"
-  exit 0
-fi
-
-if [ -n "$head" ] && [ "$parent" = "$upstream_commit" ]; then
-  move_tag
-  echo "moved tag ${latest} onto existing patch commit ${head}"
+if [ -n "$head" ] && [ "$head" = "$tag_commit" ] &&
+   git -C "$brew" merge-base --is-ancestor "$upstream_commit" "$head"
+then
+  echo "brew is already ${latest} plus patches"
   exit 0
 fi
 
 git -C "$brew" checkout -B master "$upstream_commit"
-git -C "$brew" apply --index "$patch"
-git -C "$brew" commit -m "Apply unsupported-os.patch on ${latest}"
+for name in $patches; do
+  git -C "$brew" apply --index "$patchdir/$name"
+  git -C "$brew" commit -m "Apply ${name} on ${latest}"
+done
 move_tag
-echo "brew master moved to ${latest} plus patch"
+echo "brew master moved to ${latest} plus patches"
