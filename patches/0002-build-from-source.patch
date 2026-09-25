@@ -6,7 +6,7 @@ index 8a3dc94..0e55b47 100644
          description:  "Use this as the browser when opening project homepages.",
          default_text: "`$BROWSER` or the OS's default browser.",
        },
-+      HOMEBREW_BUILD_FROM_SOURCE:                {
++      HOMEBREW_BUILD_FROM_SOURCES_YOU_PAGAN: {
 +        description: "If set, build formulae and their dependencies from source even when bottles are available.",
 +        boolean:     :set,
 +      },
@@ -21,7 +21,7 @@ index 9bbd804..6e315cc 100644
        bottle = formula.bottle
  
        return true if force_bottle && bottle.present?
-+      return false if Homebrew::EnvConfig.build_from_source?
++      return false if Homebrew::EnvConfig.build_from_sources_you_pagan?
        if os.present?
          return true
        elsif ENV["HOMEBREW_TEST_GENERIC_OS"].present?
@@ -34,7 +34,7 @@ index bdafc63..05bffe7 100644
    sig { returns(T::Boolean) }
    def build_from_source?
 -    @build_from_source_formulae.include?(formula.full_name)
-+    Homebrew::EnvConfig.build_from_source? ||
++    Homebrew::EnvConfig.build_from_sources_you_pagan? ||
 +      @build_from_source_formulae.include?(formula.full_name)
    end
  
@@ -43,7 +43,7 @@ index bdafc63..05bffe7 100644
    sig { params(dep: Formula, build: BuildOptions).returns(T::Boolean) }
    def install_bottle_for?(dep, build)
      return pour_bottle? if dep == formula
-+    return false if Homebrew::EnvConfig.build_from_source?
++    return false if Homebrew::EnvConfig.build_from_sources_you_pagan?
  
      (
        @build_from_source_formulae.exclude?(dep.full_name) &&

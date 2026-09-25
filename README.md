@@ -62,7 +62,7 @@ Homebrew на Intel печатает предупреждение, что пла
 Патчи, по порядку:
 
 1. `patches/0001-unsupported-os.patch` — предупреждение.
-2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCE`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
+2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCES_YOU_PAGAN`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
 
 ## Обновить brew на новый тег
 
