@@ -64,7 +64,7 @@ Homebrew на Intel печатает предупреждение, что пла
 1. `patches/0001-unsupported-os.patch` — предупреждение.
 2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCES_YOU_PAGAN`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
 3. `patches/0003-formula-overlay.patch` — `HOMEBREW_FORMULA_OVERLAY`. Путь к папке с файлами `<имя>.rb`. Если файл есть, `brew` берёт его вместо формулы из API, и для короткого имени, и для `homebrew/core/<имя>`. Остальные формулы по-прежнему из JSON.
-4. `patches/0004-forbid-casks.patch` — у `HOMEBREW_FORBID_CASKS` стоит `odeprecated: false`. Переменная по-прежнему запрещает установку cask, предупреждение больше не печатается.
+4. `patches/0004-forbid-casks-no-whining.patch` — у `HOMEBREW_FORBID_CASKS` стоит `odeprecated: false`. Переменная по-прежнему запрещает установку cask, предупреждение больше не печатается.
 
 ## Обновить brew на новый тег
 
@@ -79,7 +79,7 @@ Homebrew на Intel печатает предупреждение, что пла
 1. Смотрит теги `https://github.com/Homebrew/brew` и берёт старший вида `X.Y.Z`. Суффиксы вроде `7.0.6-1` не считаются.
 2. Если папки `brew/` нет, делает в ней `git init`. Качает туда только коммит тега (`git fetch --depth 1`). Родителей нет, в `git log` тег помечен `grafted`.
 3. Если тег `X.Y.Z` уже указывает на `HEAD` и этот коммит стоит поверх скачанного тега апстрима, печатает `brew is already … plus patches` и выходит.
-4. Иначе переводит `master` в `brew/` на коммит апстрима и по очереди коммитит `patches/0001-unsupported-os.patch`, `patches/0002-build-from-source.patch`, `patches/0003-formula-overlay.patch`, `patches/0004-forbid-casks.patch`.
+4. Иначе переводит `master` в `brew/` на коммит апстрима и по очереди коммитит `patches/0001-unsupported-os.patch`, `patches/0002-build-from-source.patch`, `patches/0003-formula-overlay.patch`, `patches/0004-forbid-casks-no-whining.patch`.
 5. Делает аннотированный `git tag -f -a X.Y.Z` на последний коммит. Сообщение тега: с какого SHA его перенесли.
 
 Повторный запуск на том же теге ничего не меняет.
