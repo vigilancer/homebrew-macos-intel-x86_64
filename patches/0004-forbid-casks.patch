@@ -1,0 +1,12 @@
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -405,7 +405,7 @@ module Homebrew
+       HOMEBREW_FORBID_CASKS:                     {
+         description: "If set, Homebrew will refuse to install any casks.",
+         boolean:     true,
+-        odeprecated: true,
++        odeprecated: false,
+       },
+       HOMEBREW_FORBID_PACKAGES_FROM_PATHS:       {
+         description:  "If set, Homebrew will refuse to read formulae or casks provided from file paths, " \
