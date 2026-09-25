@@ -28,4 +28,9 @@ fi
 git -C "$brew" checkout -B master "$tag"
 git -C "$brew" apply --index "$patch"
 git -C "$brew" commit -m "Apply unsupported-os.patch on ${latest}"
+
+git -C "$manage/brew" fetch "$brew" master
+git -C "$manage/brew" checkout -B master FETCH_HEAD
+git -C "$manage" add brew
+git -C "$manage" commit -m "Point brew submodule at ${latest} plus patch"
 echo "brew master moved to ${latest} plus patch"
