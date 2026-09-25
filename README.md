@@ -62,7 +62,7 @@ Homebrew на Intel печатает предупреждение, что пла
 Патчи, по порядку:
 
 1. `patches/0001-unsupported-os.patch` — предупреждение.
-2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCES_YOU_PAGAN`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
+2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
 3. `patches/0003-formula-overlay.patch` — `HOMEBREW_FORMULA_OVERLAY`. Путь к папке с файлами `<имя>.rb`. Если файл есть, `brew` берёт его вместо формулы из API, и для короткого имени, и для `homebrew/core/<имя>`. Остальные формулы по-прежнему из JSON.
 4. `patches/0004-forbid-casks-no-whining.patch` — у `HOMEBREW_FORBID_CASKS` стоит `odeprecated: false`. Переменная по-прежнему запрещает установку cask, предупреждение больше не печатается.
 
