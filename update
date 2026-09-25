@@ -17,17 +17,37 @@ if [ -z "$latest" ]; then
   exit 1
 fi
 
-git -C "$brew" fetch --depth 1 "$upstream" "refs/tags/${latest}:refs/tags/${latest}"
-tag=$(git -C "$brew" rev-parse "refs/tags/${latest}^{}")
+# Keep the upstream tag under another ref. refs/tags/<latest> is moved onto our commit.
+git -C "$brew" fetch --depth 1 "$upstream" \
+  "refs/tags/${latest}:refs/upstream-tags/${latest}"
+upstream_commit=$(git -C "$brew" rev-parse "refs/upstream-tags/${latest}^{}")
+head=$(git -C "$brew" rev-parse HEAD)
 parent=$(git -C "$brew" rev-parse --verify HEAD^ 2>/dev/null || true)
-if [ "$parent" = "$tag" ]; then
+tag_commit=$(git -C "$brew" rev-parse "refs/tags/${latest}^{}" 2>/dev/null || true)
+
+move_tag() {
+  git -C "$brew" tag -f -a "$latest" HEAD -m "Move tag ${latest} from ${upstream_commit} onto the unsupported-os patch.
+
+The upstream tag pointed at ${upstream_commit}.
+It was moved on purpose and now points at this commit."
+  git -C "$manage/brew" fetch "$brew" "+refs/tags/${latest}:refs/tags/${latest}"
+}
+
+if [ "$parent" = "$upstream_commit" ] && [ "$head" = "$tag_commit" ]; then
   echo "brew is already ${latest} plus patch"
   exit 0
 fi
 
-git -C "$brew" checkout -B master "$tag"
+if [ "$parent" = "$upstream_commit" ]; then
+  move_tag
+  echo "moved tag ${latest} onto existing patch commit ${head}"
+  exit 0
+fi
+
+git -C "$brew" checkout -B master "$upstream_commit"
 git -C "$brew" apply --index "$patch"
 git -C "$brew" commit -m "Apply unsupported-os.patch on ${latest}"
+move_tag
 
 git -C "$manage/brew" fetch "$brew" master
 git -C "$manage/brew" checkout -B master FETCH_HEAD
