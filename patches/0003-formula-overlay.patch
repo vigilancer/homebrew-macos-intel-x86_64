@@ -1,0 +1,64 @@
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+index 4178549..4941b6f 100644
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -454,6 +454,10 @@ module Homebrew
+                      "controls set through DSL usage inside formulae. Must be `allow` or `deny`. If no value is " \
+                      "set through this environment variable or DSL usage, the default behaviour is `allow`.",
+       },
++      HOMEBREW_FORMULA_OVERLAY:                  {
++        description: "A directory of formula files. If `<name>.rb` exists here, Homebrew uses that file " \
++                     "instead of the API formula of the same name, including for `homebrew/core/<name>`.",
++      },
+       HOMEBREW_FORMULA_POSTINSTALL_NETWORK:      {
+         description: "If set, controls network access to the sandbox for formulae postinstall. Overrides any " \
+                      "controls set through DSL usage inside formulae. Must be `allow` or `deny`. If no value is " \
+diff --git a/Library/Homebrew/formulary.rb b/Library/Homebrew/formulary.rb
+index 2edebfc..a512538 100644
+--- a/Library/Homebrew/formulary.rb
++++ b/Library/Homebrew/formulary.rb
+@@ -916,6 +916,36 @@ module Formulary
+     end
+   end
+ 
++  # Loads a formula file from HOMEBREW_FORMULA_OVERLAY before the API.
++  class FromOverlayLoader < FormulaLoader
++    sig {
++      params(ref: T.any(String, Pathname, URI::Generic), from: T.nilable(Symbol), warn: T::Boolean)
++        .returns(T.nilable(T.attached_class))
++    }
++    def self.try_new(ref, from: nil, warn: false)
++      return unless ref.is_a?(String)
++
++      overlay = Homebrew::EnvConfig.formula_overlay
++      return if overlay.blank?
++
++      directory = Pathname(overlay)
++      return unless directory.directory?
++
++      name = ref[HOMEBREW_DEFAULT_TAP_FORMULA_REGEX, :name]
++      return if name.blank?
++
++      path = directory/"#{name.downcase}.rb"
++      return unless path.file?
++
++      new(name.downcase, path)
++    end
++
++    sig { params(name: String, path: Pathname).void }
++    def initialize(name, path)
++      super(name, path, tap: CoreTap.instance)
++    end
++  end
++
+   # Load a formula from the API.
+   class FromAPILoader < FormulaLoader
+     sig {
+@@ -1233,6 +1263,7 @@ module Formulary
+     [
+       FromBottleLoader,
+       FromURILoader,
++      FromOverlayLoader,
+       FromAPILoader,
+       FromTapLoader,
+       FromPathLoader,

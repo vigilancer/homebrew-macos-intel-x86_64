@@ -5,7 +5,7 @@ manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 brew=$manage/brew
 upstream=https://github.com/Homebrew/brew
 patchdir=$manage/patches
-patches="0001-unsupported-os.patch 0002-build-from-source.patch 0004-forbid-casks.patch"
+patches="0001-unsupported-os.patch 0002-build-from-source.patch 0003-formula-overlay.patch 0004-forbid-casks.patch"
 
 latest=$(
   git ls-remote --tags "$upstream" |
