@@ -10,13 +10,11 @@ class Bfg < Formula
     regex(%r{<version>v?(\d+(?:\.\d+)+)</version>}i)
   end
 
-  depends_on "openjdk"
-
   def install
     libexec.install "bfg-#{version}.jar"
     (bin/"bfg").write <<~SHELL
       #!/bin/bash
-      exec "#{Formula["openjdk"].opt_bin}/java" -jar "#{libexec}/bfg-#{version}.jar" "$@"
+      exec "${JAVA_HOME:+$JAVA_HOME/bin/}java" -jar "#{libexec}/bfg-#{version}.jar" "$@"
     SHELL
   end
 
