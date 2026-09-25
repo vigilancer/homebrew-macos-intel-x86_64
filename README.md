@@ -5,11 +5,11 @@
 ### Обновить git нашего brew на новый тег апстрима
 
 ```sh
-cd ~/projects/brew-self/manage
+cd ~/projects/brew-self
 ./update
 ```
 
-Это репа `~/projects/brew-self/brew`. Скрипт ставит `master` на последний тег апстрима, накладывает патч и переносит этот же тег `X.Y.Z` на коммит с патчем. Аннотация тега (`git show <тег>`) содержит старый SHA: fetch забирает этот объект, так что видно, что тег подвинули нарочно. В `git log` отдельной записи о сдвиге ref нет — git так не умеет.
+Скрипт создаёт локальную папку `brew/` (она в `.gitignore`, это не подмодуль), ставит её `master` на последний тег апстрима, накладывает патч и переносит этот же тег `X.Y.Z` на коммит с патчем. Аннотация тега (`git show <тег>`) содержит старый SHA: fetch забирает этот объект, так что видно, что тег подвинули нарочно. В `git log` отдельной записи о сдвиге ref нет — git так не умеет.
 
 ### Подхватить это установленным brew
 
@@ -23,14 +23,12 @@ Update забирает теги с `--force` и переключается на
 
 ### Новая машина: начать пользоваться нашим brew
 
-Репы должны быть доступны по `git://git.caprica/brew/brew` и `git://git.caprica/brew/manage`.
+Репа `manage` должна быть доступна по `git://git.caprica/brew/manage`. Папка `brew/` внутри неё на сервер не попадает: её создаёт `./update`.
 
 ```sh
 mkdir -p ~/projects/brew-self
-git clone git://git.caprica/brew/brew ~/projects/brew-self/brew
-git clone git://git.caprica/brew/manage ~/projects/brew-self/manage
-cd ~/projects/brew-self/manage
-git submodule update --init
+git clone git://git.caprica/brew/manage ~/projects/brew-self
+cd ~/projects/brew-self
 ./update
 ```
 
@@ -46,16 +44,14 @@ EOF
 brew update
 ```
 
-Эта репа обновляет соседнюю `../brew`: `master` становится последним тегом [Homebrew/brew](https://github.com/Homebrew/brew) плюс наш патч.
+`./update` создаёт `brew/` рядом со скриптом. `master` в этой папке становится последним тегом [Homebrew/brew](https://github.com/Homebrew/brew) плюс наш патч. В git этой репы папка не входит.
 
 Каталог:
 
 ```text
-~/projects/brew-self/brew     репа brew, origin git://git.caprica/brew/brew
-~/projects/brew-self/manage   эта репа, origin git://git.caprica/brew/manage
+~/projects/brew-self        эта репа, origin git://git.caprica/brew/manage
+~/projects/brew-self/brew   локальный клон, создаёт ./update, в .gitignore
 ```
-
-`brew` внутри `manage` — подмодуль той же репы `../brew`.
 
 ## Зачем
 
@@ -76,11 +72,10 @@ Homebrew на Intel печатает предупреждение, что пла
 Скрипт сам делает следующее.
 
 1. Смотрит теги `https://github.com/Homebrew/brew` и берёт старший вида `X.Y.Z`. Суффиксы вроде `7.0.6-1` не считаются.
-2. Качает в `../brew` только этот коммит (`git fetch --depth 1`). Родителей нет, в `git log` тег помечен `grafted`.
+2. Если папки `brew/` нет, делает в ней `git init`. Качает туда только коммит тега (`git fetch --depth 1`). Родителей нет, в `git log` тег помечен `grafted`.
 3. Если `HEAD` уже коммит с патчем и тег `X.Y.Z` указывает на него, печатает `brew is already … plus patch` и выходит.
-4. Иначе переводит `master` на коммит апстрима, накладывает `unsupported-os.patch` и коммитит.
+4. Иначе переводит `master` в `brew/` на коммит апстрима, накладывает `unsupported-os.patch` и коммитит.
 5. Делает аннотированный `git tag -f -a X.Y.Z` на этот коммит. Сообщение тега: с какого SHA его перенесли.
-6. Подтягивает коммит и тег в подмодуль `manage/brew` и коммитит указатель здесь.
 
 Повторный запуск на том же теге ничего не меняет.
 
@@ -97,7 +92,7 @@ git tag -f -a 7.0.6 HEAD -m "Move tag 7.0.6 from <старый SHA> onto the uns
 В `git log` объекта нет. Лог показывает только коммиты. Рядом с нашим коммитом может стоять пометка `tag: 7.0.6`, это декорация, не запись о сдвиге. Текст «тег перенесли с такого-то SHA» смотреть так:
 
 ```sh
-git -C ../brew show 7.0.6
+git -C brew show 7.0.6
 ```
 
 Сначала идёт аннотация тега, ниже коммит, на который он сейчас указывает. Reflog сюда не входит: он локальный и при pull не передаётся.
@@ -105,8 +100,8 @@ git -C ../brew show 7.0.6
 ## Посмотреть, на чём стоим
 
 ```sh
-git -C ../brew log --oneline
-git -C ../brew status -sb
+git -C brew log --oneline
+git -C brew status -sb
 ```
 
 Ожидаются два коммита: коммит апстрима (`grafted`) и коммит с патчем. Тег `X.Y.Z` стоит на втором. `git show <тег>` показывает аннотацию со старым SHA. Полной истории Homebrew в клоне нет, её обрезал `--depth 1`.
@@ -114,10 +109,10 @@ git -C ../brew status -sb
 ## Поменять патч
 
 1. Отредактировать `unsupported-os.patch`.
-2. В `../brew` сбросить `master` на коммит апстрима, не на коммит с патчем: `git -C ../brew reset --hard HEAD^`.
+2. В `brew/` сбросить `master` на коммит апстрима, не на коммит с патчем: `git -C brew reset --hard HEAD^`.
 3. Запустить `./update`. Он наложит патч заново и снова перенесёт тег.
 
-Если `git apply` упал, патч не совпал с новым тегом. Править `unsupported-os.patch` по конфликту и снова `./update` после `git -C ../brew reset --hard` на тег.
+Если `git apply` упал, патч не совпал с новым тегом. Править `unsupported-os.patch` по конфликту и снова `./update` после `git -C brew reset --hard` на тег.
 
 ## Эта машина сейчас
 
