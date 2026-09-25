@@ -5,7 +5,6 @@ manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 brew=$manage/brew
 upstream=https://github.com/Homebrew/brew
 patchdir=$manage/patches
-patches="0001-unsupported-os.patch 0002-build-from-source.patch 0003-formula-overlay.patch 0004-forbid-casks-no-whining.patch"
 
 latest=$(
   git ls-remote --tags "$upstream" |
@@ -47,9 +46,24 @@ then
 fi
 
 git -C "$brew" checkout -B master "$upstream_commit"
+
+set -- "$patchdir"/*.patch
+if [ ! -f "$1" ]; then
+  echo "no patches in $patchdir" >&2
+  exit 1
+fi
+patches=$(
+  for path in "$@"; do
+    basename "$path"
+  done | sort -V
+)
+oldifs=$IFS
+IFS='
+'
 for name in $patches; do
   git -C "$brew" apply --index "$patchdir/$name"
   git -C "$brew" commit -m "Apply ${name} on ${latest}"
 done
+IFS=$oldifs
 move_tag
 echo "brew master moved to ${latest} plus patches"
