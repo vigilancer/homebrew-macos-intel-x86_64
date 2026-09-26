@@ -1,124 +1,88 @@
-# manage
 
-## TL;DR
+# What, Why and for Whom
 
-### Обновить git нашего brew на новый тег апстрима
+Patched `homebrew` with missing features that are relevant mostly for devices running macOS on Intel CPUs.
 
+See list of patches below to decide if it is of any use for you personally.
+
+# how to start using homebrew-macos-intel-x86_64 TODAY!
+
+. clone this repo
 ```sh
-cd ~/projects/brew-self
+mkdir -p ~/brew-self
+git clone https://github.com/vigilancer/homebrew-macos-intel-x86_64.git ~/brew-self
+```
+. remove patches you don't need (if any)
+```sh
+cd ~/brew-self
+rm patches/0001-unsupported-os.patch
+rm patches/0002-build-from-source.patch
+rm patches/0003-formula-overlay.patch
+rm patches/0004-forbid-casks-no-whining.patch
+```
+
+. brew your own
+  this will create shallow copy of latest `brew` release in `brew` folder and apply patches to it.
+  brew? brew! ah, brew... 
+```
 ./update
 ```
 
-Скрипт создаёт локальную папку `brew/` (она в `.gitignore`, это не подмодуль), ставит её `master` на последний тег апстрима, накладывает патчи по очереди и переносит этот же тег `X.Y.Z` на последний коммит. Аннотация тега (`git show <тег>`) содержит старый SHA: fetch забирает этот объект, так что видно, что тег подвинули нарочно. В `git log` отдельной записи о сдвиге ref нет — git так не умеет.
-
-### Подхватить это установленным brew
-
-Когда `HOMEBREW_BREW_GIT_REMOTE` указывает на `~/projects/brew-self/brew`:
-
-```sh
-brew update
-```
-
-Update забирает теги с `--force` и переключается на старший `X.Y.Z`. Этот тег указывает на коммит с патчем. Флаг `HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1` в `~/.homebrew/brew.env` при этом уже должен стоять.
-
-### Новая машина: начать пользоваться нашим brew
-
-Репа `manage` должна быть доступна по `git://git.caprica/brew/manage`. Папка `brew/` внутри неё на сервер не попадает: её создаёт `./update`.
-
-```sh
-mkdir -p ~/projects/brew-self
-git clone git://git.caprica/brew/manage ~/projects/brew-self
-cd ~/projects/brew-self
-./update
-```
-
-Дальше указать Homebrew на этот клон и включить флаг. На Intel репа Homebrew — `/usr/local/Homebrew` (`brew --repo`).
-
+. set new source for `brew` updates
+  and make use of installed patches
 ```sh
 mkdir -p ~/.homebrew
 cat > ~/.homebrew/brew.env << EOF
-HOMEBREW_BREW_GIT_REMOTE=$HOME/projects/brew-self/brew
-HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1
+HOMEBREW_BREW_GIT_REMOTE=$HOME/brew-self/brew
+HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
+HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
+HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
 EOF
-
-brew update
 ```
 
-`./update` создаёт `brew/` рядом со скриптом. `master` в этой папке становится последним тегом [Homebrew/brew](https://github.com/Homebrew/brew) плюс наш патч. В git этой репы папка не входит.
+. update brew
+```brew update```
 
-Каталог:
-
-```text
-~/projects/brew-self        эта репа, origin git://git.caprica/brew/manage
-~/projects/brew-self/brew   локальный клон, создаёт ./update, в .gitignore
-```
-
-## Зачем
-
-Homebrew на Intel печатает предупреждение, что платформа не поддерживается. Текст зашит локально в `check_for_unsupported_macos`, это не ответ сервера bottle.
-
-Патч добавляет переменную `HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS`. Если она непустая, проверка выходит сразу и предупреждение не печатается. Другого поведения Homebrew патч не меняет.
-
-Патчи, по порядку:
-
-1. `patches/0001-unsupported-os.patch` — предупреждение.
-2. `patches/0002-build-from-source.patch` — `HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE`. Любое непустое значение заставляет `install`, `upgrade`, `reinstall` и `fetch` собирать формулу и её зависимости из исходников, даже если bottle есть. `--force-bottle` это перекрывает. Флаг `-s` по-прежнему действует только на формулы, названные в команде, и не на зависимости.
-3. `patches/0003-formula-overlay.patch` — `HOMEBREW_FORMULA_OVERLAY`. Путь к папке с файлами `<имя>.rb`. Если файл есть, `brew` берёт его вместо формулы из API, и для короткого имени, и для `homebrew/core/<имя>`. Остальные формулы по-прежнему из JSON.
-4. `patches/0004-forbid-casks-no-whining.patch` — у `HOMEBREW_FORBID_CASKS` стоит `odeprecated: false`. Переменная по-прежнему запрещает установку cask, предупреждение больше не печатается.
-
-## Обновить brew на новый тег
-
-Из этой репы:
-
+. check that everything goes as expected
 ```sh
-./update
+brew config
+```
+`ORIGIN` should match `HOMEBREW_BREW_GIT_REMOTE`.
+
+. (optionally) add shell alias
+fish:
+```fish
+function brew-update
+    ~/brew-self/update; and brew update $argv
+end
 ```
 
-Скрипт сам делает следующее.
-
-1. Смотрит теги `https://github.com/Homebrew/brew` и берёт старший вида `X.Y.Z`. Суффиксы вроде `7.0.6-1` не считаются.
-2. Если папки `brew/` нет, делает в ней `git init`. Качает туда только коммит тега (`git fetch --depth 1`). Родителей нет, в `git log` тег помечен `grafted`.
-3. Если тег `X.Y.Z` уже указывает на `HEAD` и этот коммит стоит поверх скачанного тега апстрима, печатает `brew is already … plus patches` и выходит.
-4. Иначе переводит `master` в `brew/` на коммит апстрима, берёт все `*.patch` из `patches/`, сортирует их по номеру в начале имени и коммитит по очереди.
-5. Делает аннотированный `git tag -f -a X.Y.Z` на последний коммит. Сообщение тега: с какого SHA его перенесли.
-
-Повторный запуск на том же теге ничего не меняет.
-
-## Сдвиг тега
-
-Новый тег мы не заводим. `./update` переносит тот же `X.Y.Z`, который пришёл из Homebrew, на наш коммит:
-
-```sh
-git tag -f -a 7.0.6 HEAD -m "Move tag 7.0.6 from <старый SHA> onto the unsupported-os patch."
+bash & zsh:
+```bash
+brew-update() {
+    ~/brew-self/update && brew update "$@"
+}
 ```
 
-`-f` двигает уже существующее имя. `-a` пишет отдельный объект тега: кто, когда и с какого SHA его перенесли. `fetch` забирает этот объект вместе с коммитом.
+# short overview of patches
 
-В `git log` объекта нет. Лог показывает только коммиты. Рядом с нашим коммитом может стоять пометка `tag: 7.0.6`, это декорация, не запись о сдвиге. Текст «тег перенесли с такого-то SHA» смотреть так:
+`0001-unsupported-os.patch`
+Makes possible to disable annoying warning about Intel macOS is not being supported.  
+Take that Apple Silicon!
 
-```sh
-git -C brew show 7.0.6
-```
+`0002-build-from-source.patch`
+Adds flag to build from sources _everything_.  
+Yes, including dependencies.  
+Yes, even when bottles are available.  
 
-Сначала идёт аннотация тега, ниже коммит, на который он сейчас указывает. Reflog сюда не входит: он локальный и при pull не передаётся.
+`0003-formula-overlay.patch`
+Now it is possible to create local overlay for every formula.  
+No need to mess with taps.  
+No need to wait for upstream fixes.
+Just create formula with same name locally and brew will treat it like regular formula.
+Place your overlays into `$HOME/brew-self/Formula/`.
 
-## Посмотреть, на чём стоим
+`0004-forbid-casks-no-whining.patch`
+Disables annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no replacement.* message.
+(Really should be made into global toggle to disable *odeprecated* messages all at once. But this is how it is for now).
 
-```sh
-git -C brew log --oneline
-git -C brew status -sb
-```
-
-Ожидаются коммит апстрима (`grafted`) и по коммиту на каждый патч. Тег `X.Y.Z` стоит на последнем. `git show <тег>` показывает аннотацию со старым SHA. Полной истории Homebrew в клоне нет, её обрезал `--depth 1`.
-
-## Поменять патч
-
-1. Отредактировать нужный файл в `patches/`.
-2. В `brew/` сбросить `master` на скачанный коммит апстрима: `git -C brew reset --hard refs/upstream-tags/7.0.6` (подставить текущий тег).
-3. Запустить `./update`. Он наложит оба патча заново и снова перенесёт тег.
-
-Если `git apply` упал, патч не совпал с новым тегом. Править его по конфликту и снова `./update` после того же `reset --hard`.
-
-## Эта машина сейчас
-
-`~/.homebrew/brew.env` всё ещё указывает на старый клон `/Users/ae/Projects/brew`, не на `~/projects/brew-self/brew`. Флаг `HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1` гасит предупреждение там. Чтобы перейти на репы из этого каталога, сделать шаги из TL;DR «Новая машина», начиная с `brew.env`.
