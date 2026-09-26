@@ -1,8 +1,8 @@
 # What, Why and for Whom
 
-Patched `homebrew` with missing features that are relevant mostly for devices running macOS on Intel CPUs.
+A patched Homebrew, with a few features that upstream does not have. Mostly relevant to devices running macOS on Intel CPUs.
 
-See list of patches below to decide if it is of any use for you personally.
+See the list of patches below to decide if it is of any use to you.
 
 ## how to start using homebrew-macos-intel-x86_64 TODAY!
 
@@ -25,7 +25,7 @@ rm patches/0004-forbid-casks-no-whining.patch
 
 3. brew your own
 
-   this will create shallow copy of latest `brew` release in `brew` folder and apply patches to it.
+   this will create a shallow copy of the latest `brew` release in the `brew` folder and apply patches to it.
 
    brew? brew! ah, brew...
 
@@ -35,7 +35,7 @@ rm patches/0004-forbid-casks-no-whining.patch
 
 4. set new source for `brew` updates
 
-   and make use of installed patches
+   and enable the patches you kept
 
 ```sh
 mkdir -p ~/.homebrew
@@ -82,21 +82,29 @@ brew-update() {
 ## short overview of patches
 
 `0001-unsupported-os.patch`  
-Makes possible to disable annoying warning about Intel macOS is not being supported.  
+Makes it possible to disable the annoying warning that Intel macOS is not supported.  
 Take that Apple Silicon!
 
 `0002-build-from-source.patch`  
-Adds flag to build from sources _everything_.  
+Adds a switch to build _everything_ from source.  
 Yes, including dependencies.  
 Yes, even when bottles are available.
 
 `0003-formula-overlay.patch`  
-Now it is possible to create local overlay for every formula.  
+Now it is possible to create a local overlay for any formula.  
 No need to mess with taps.  
 No need to wait for upstream fixes.  
-Just create formula with same name locally and brew will treat it like regular formula.  
-Place your overlays into `$HOME/brew-self/Formula/`.
+Just create a formula with the same name locally and brew will treat it like a regular formula.  
+Place your overlays in `$HOME/brew-self/Formula/`.
 
 `0004-forbid-casks-no-whining.patch`  
-Disables annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no replacement.* message.  
-(Really should be made into global toggle to disable *odeprecated* messages all at once. But this is how it is for now).
+Disables the annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no replacement.* message.  
+(Really should be made into a global toggle to disable *odeprecated* messages all at once. But this is how it is for now).
+
+## caveats
+
+As you can see, there is no way yet to tie patches to a specific `brew` version.  
+Upstream changes can break the patches.  
+If that happens, ask your favorite agent to fix them.  
+Or wait for me to push an update to this repo.
+
