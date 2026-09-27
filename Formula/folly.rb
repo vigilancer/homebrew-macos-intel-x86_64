@@ -39,6 +39,10 @@ class Folly < Formula
 
   # Workaround for arm64 Linux error "Missing variable is: CMAKE_ASM_CREATE_SHARED_LIBRARY"
   # Ref: https://github.com/facebook/folly/pull/2562#issuecomment-3988207056
+  #
+  # Intel macOS: MathOperation_Simple.cpp is built with -mno-sse2, and the
+  # macOS 15 SDK math.h then rejects _Float16. Rewrite that unused token in
+  # this translation unit only so the scalar object stays scalar.
   patch :DATA
 
   def install
@@ -94,3 +98,14 @@ index e07e58745..1429f54e9 100644
  folly_add_library(
    NAME memcpy_aarch64
    SRCS
+diff --git a/folly/crypto/detail/MathOperation_Simple.cpp b/folly/crypto/detail/MathOperation_Simple.cpp
+--- a/folly/crypto/detail/MathOperation_Simple.cpp
++++ b/folly/crypto/detail/MathOperation_Simple.cpp
+@@ -15,5 +15,7 @@
+  */
+ 
+ // Implementation of the MathOperation<MathEngine::SIMPLE> template
+ // specializations.
++// macOS 15 SDK math.h declares _Float16, which Clang rejects with -mno-sse2.
++#define _Float16 float
+ #include <folly/crypto/detail/LtHashInternal.h>
