@@ -22,6 +22,9 @@ class Cpptoml < Formula
     resolves "https://github.com/skystrife/cpptoml/pull/123"
   end
 
+  # CMake 4 refuses cmake_minimum_required below 3.5.
+  patch :DATA
+
   def install
     args = %W[
       -DENABLE_LIBCXX=#{(ENV.compiler == :clang) ? "ON" : "OFF"}
@@ -59,3 +62,11 @@ class Cpptoml < Formula
     assert_equal "Hello, Homebrew.", shell_output("./test").strip
   end
 end
+
+__END__
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1 +1 @@
+-cmake_minimum_required(VERSION 3.1.0)
++cmake_minimum_required(VERSION 3.5)
