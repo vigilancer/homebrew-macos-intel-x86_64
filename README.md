@@ -20,7 +20,7 @@ cd ~/brew-self
 rm patches/0001-unsupported-os-silent.patch
 rm patches/0002-build-from-source.patch
 rm patches/0003-formula-overlay.patch
-rm patches/0004-forbid-casks-no-whining.patch
+rm patches/0004-odeprecated-silent.patch
 rm patches/0005-info-installed-dependents.patch
 rm patches/0006-info-recursive-runtime-names.patch
 ```
@@ -46,6 +46,7 @@ HOMEBREW_BREW_GIT_REMOTE=$HOME/brew-self/brew
 HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
 HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
 HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
+HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
 EOF
 ```
 
@@ -99,9 +100,10 @@ No need to wait for upstream fixes.
 Just create a formula with the same name locally and brew will treat it like a regular formula.  
 Place your overlays in `$HOME/brew-self/Formula/`.
 
-`0004-forbid-casks-no-whining.patch`  
-Disables the annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no replacement.* message.  
-(Really should be made into a global toggle to disable *odeprecated* messages all at once. But this is how it is for now).
+`0004-odeprecated-silent.patch`  
+Adds `$HOMEBREW_ODEPRECATED_AND_I_DONT_CARE`.  
+If it is set, Homebrew does not warn about environment variables marked `odeprecated: true`.  
+Variables marked `odisabled: true` still warn.
 
 `0005-info-installed-dependents.patch`  
 `brew info` lists installed formulae that depend on this one, grouped by how they depend on it:  
