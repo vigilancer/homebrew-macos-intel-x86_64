@@ -21,6 +21,7 @@ rm patches/0001-unsupported-os.patch
 rm patches/0002-build-from-source.patch
 rm patches/0003-formula-overlay.patch
 rm patches/0004-forbid-casks-no-whining.patch
+rm patches/0005-info-installed-dependents.patch
 ```
 
 3. brew your own
@@ -100,6 +101,12 @@ Place your overlays in `$HOME/brew-self/Formula/`.
 `0004-forbid-casks-no-whining.patch`  
 Disables the annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no replacement.* message.  
 (Really should be made into a global toggle to disable *odeprecated* messages all at once. But this is how it is for now).
+
+`0005-info-installed-dependents.patch`  
+`brew info` lists installed formulae that depend on this one, grouped by how they depend on it:  
+Required, Recommended, Optional, Build, Test, Implicit.  
+Empty groups are skipped. Casks are not included.  
+Only shown in a terminal, same as the old one-line dependent count.
 
 ## caveats
 
