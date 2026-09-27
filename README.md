@@ -25,7 +25,7 @@ rm patches/0004-forbid-casks-no-whining.patch
 
 3. brew your own
 
-   this will create a shallow copy of the latest `brew` release in the `brew` folder and apply patches to it.
+   this will fetch the latest `brew` release with full history into the `brew` folder and apply patches to it.
 
    brew? brew! ah, brew...
 

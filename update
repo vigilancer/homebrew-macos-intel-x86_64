@@ -25,8 +25,14 @@ fi
 git -C "$brew" config advice.implicitIdentity false
 
 # Keep the upstream tag under another ref. refs/tags/<latest> is moved onto our commit.
-git -C "$brew" fetch --depth 1 "$upstream" \
-  "refs/tags/${latest}:refs/upstream-tags/${latest}"
+# Full history: a shallow repo cannot be fetched into an existing Homebrew install.
+if [ "$(git -C "$brew" rev-parse --is-shallow-repository)" = true ]; then
+  git -C "$brew" fetch --unshallow "$upstream" \
+    "refs/tags/${latest}:refs/upstream-tags/${latest}"
+else
+  git -C "$brew" fetch "$upstream" \
+    "refs/tags/${latest}:refs/upstream-tags/${latest}"
+fi
 upstream_commit=$(git -C "$brew" rev-parse "refs/upstream-tags/${latest}^{}")
 head=$(git -C "$brew" rev-parse --verify HEAD 2>/dev/null || true)
 tag_commit=$(git -C "$brew" rev-parse --verify "refs/tags/${latest}^{}" 2>/dev/null || true)
