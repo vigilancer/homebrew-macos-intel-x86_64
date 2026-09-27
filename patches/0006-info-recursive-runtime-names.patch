@@ -1,0 +1,58 @@
+diff --git a/Library/Homebrew/cmd/info.rb b/Library/Homebrew/cmd/info.rb
+index 7f65bb6ebb..49df60a459 100644
+--- a/Library/Homebrew/cmd/info.rb
++++ b/Library/Homebrew/cmd/info.rb
+@@ -593,15 +593,16 @@ module Homebrew
+             puts "Missing libraries (#{missing_library_names.count}): #{decorated}"
+           end
+           if tab_runtime_deps.present?
+-            installed_count = tab_runtime_deps.count do |dep|
+-              dep_name = dep["full_name"]&.then { Utils.name_from_full_name(it) }
+-              next false unless dep_name
++            runtime_names = tab_runtime_deps.filter_map do |dep|
++              full_name = dep["full_name"]
++              next if full_name.blank?
+ 
++              dep_name = Utils.name_from_full_name(full_name)
+               rack = HOMEBREW_CELLAR/dep_name
+-              rack.directory? && !rack.subdirs.empty?
++              installed = rack.directory? && !rack.subdirs.empty?
++              pretty_install_status(dep_name, installed:, mark_uninstalled: true, bold: false)
+             end
+-            puts "Recursive Runtime (#{tab_runtime_deps.count}): " \
+-                 "#{self.class.dependency_status_counts(installed_count, tab_runtime_deps.count)}"
++            puts "Recursive Runtime (#{runtime_names.count}): #{runtime_names.join(", ")}"
+           end
+         end
+ 
+diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/info_spec.rb
+index 9623300c40..8c3b94f49c 100644
+--- a/Library/Homebrew/test/cmd/info_spec.rb
++++ b/Library/Homebrew/test/cmd/info_spec.rb
+@@ -612,7 +612,7 @@ RSpec.describe Homebrew::Cmd::Info do
+ 
+     expected_output = Regexp.new(
+       "==> Dependencies\nRequired \\(1\\): .*bar.*\n" \
+-      "Recursive Runtime \\(2\\): 1 installed .*✔, 1 missing .*✘\n" \
++      "Recursive Runtime \\(2\\): installed-dep .*✔, missing-dep .*✘\n" \
+       "==> Dependents\nRequired \\(1\\): some-dependent",
+     )
+     expect { info.info_formula(formula) }
+@@ -667,7 +667,7 @@ RSpec.describe Homebrew::Cmd::Info do
+       .and not_to_output.to_stderr
+   end
+ 
+-  it "summarises recursive runtime dependencies as all installed when none are missing" do
++  it "lists recursive runtime dependency names when all are installed" do
+     allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
+ 
+     info = described_class.new([])
+@@ -699,7 +699,7 @@ RSpec.describe Homebrew::Cmd::Info do
+     allow(direct_dependency).to receive(:satisfied?).and_return(true)
+ 
+     expect { info.info_formula(formula) }
+-      .to output(/Recursive Runtime \(1\): all installed .*✔/).to_stdout
++      .to output(/Recursive Runtime \(1\): installed-dep .*✔/).to_stdout
+       .and not_to_output(/missing/).to_stdout
+       .and not_to_output.to_stderr
+   end

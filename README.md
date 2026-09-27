@@ -22,6 +22,7 @@ rm patches/0002-build-from-source.patch
 rm patches/0003-formula-overlay.patch
 rm patches/0004-forbid-casks-no-whining.patch
 rm patches/0005-info-installed-dependents.patch
+rm patches/0006-info-recursive-runtime-names.patch
 ```
 
 3. brew your own
@@ -107,6 +108,11 @@ Disables the annoying *Calling HOMEBREW_FORBID_CASKS is deprecated! There is no 
 Required, Recommended, Optional, Build, Test, Implicit.  
 Empty groups are skipped. Casks are not included.  
 Only shown in a terminal, same as the old one-line dependent count.
+
+`0006-info-recursive-runtime-names.patch`  
+`brew info` prints the names in `Recursive Runtime`, not only a count.  
+Each name is marked installed or missing.  
+The list is the runtime tree recorded when the formula was installed.
 
 ## caveats
 
