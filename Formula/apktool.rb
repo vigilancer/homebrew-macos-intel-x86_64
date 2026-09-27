@@ -5,6 +5,10 @@ class Apktool < Formula
   sha256 "dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423"
   license "Apache-2.0"
 
+  bottle do
+    sha256 cellar: :any_skip_relocation, all: "9a376927a5c810db5be63363485bfe4fb51cd0d6774a617b5ae37522a4d55300"
+  end
+
   def install
     libexec.install "apktool_#{version}.jar"
     (bin/"apktool").write <<~SHELL
