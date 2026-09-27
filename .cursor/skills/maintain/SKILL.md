@@ -68,8 +68,8 @@ moved onto the patched commit. The user's `brew update` follows
 
 Goal: each overlay formula matches the formula brew would use, plus this
 repo's local hunks. Keep upstream bottles and every other upstream stanza.
-The diff against `Formula/upstream/<name>.rb` should be only our patches. A formula
-with no file in `Formula/upstream/` is local-only and stays as written.
+`Formula/patches/<name>.patch` is those hunks. A formula with no patch
+there is local-only and stays as written.
 
 Upstream is two records that name the same file:
 
@@ -90,29 +90,28 @@ the formula, do not use GitHub `main`, and do not copy a local checkout.
 Tell the user which host failed and ask them to set up access. Do not
 continue with the remaining formulae.
 
-`Formula/<name>.rb` is what Homebrew loads. `Formula/upstream/<name>.rb` is the
-unmodified Ruby from the source of truth, and only for a formula that
-overlays an existing one. The overlay loader only opens `Formula/<name>.rb`,
-so files in the subdirectory are not formulae.
+`Formula/<name>.rb` is what Homebrew loads. `Formula/patches/<name>.patch`
+applied to the upstream Ruby produces that file. `patch -R` on
+`Formula/<name>.rb` restores the upstream Ruby. The overlay loader only
+opens `Formula/<name>.rb`, so the patch directory is not formulae.
 
-`diff -u Formula/upstream/<name>.rb Formula/<name>.rb` is our changes. Do not edit
-`Formula/upstream/` by hand.
+A formula with no `Formula/patches/<name>.patch` is ours alone. Skip it.
+Do not download it and do not create a patch.
 
-A formula with no `Formula/upstream/<name>.rb` is ours alone. Skip it. Do not
-download it and do not create an upstream file.
-
-For each formula that has `Formula/upstream/<name>.rb`:
+For each formula that has `Formula/patches/<name>.patch`:
 
 1. Download the JSON, then the Ruby at `tap_git_head`, and verify the
    checksum. A 404 means it is missing: stop and ask. Any other fetch or
    checksum failure: stop and ask the user to set up access.
-2. If the download matches `Formula/upstream/<name>.rb`, skip.
-3. Diff `Formula/upstream/<name>.rb` against `Formula/<name>.rb`. Apply that diff
-   to the downloaded file. If it applies cleanly, write the result to
-   `Formula/<name>.rb` and replace `Formula/upstream/<name>.rb` with the download.
-   Bottles and every other upstream stanza stay, except lines our diff
-   itself changes.
-4. If the diff does not apply, stop that formula and ask. Leave both files
+2. Reverse-apply the patch to a copy of `Formula/<name>.rb`. That result
+   is the upstream this overlay was built from. If it matches the download,
+   skip.
+3. Apply the patch to the download. If it applies cleanly, write the result
+   to `Formula/<name>.rb` and regenerate `Formula/patches/<name>.patch` with
+   `diff -u` from the download to that result, labeled `upstream/<name>.rb`
+   and `Formula/<name>.rb`. Bottles and every other upstream stanza stay,
+   except lines the patch itself changes.
+4. If either apply fails, stop that formula and ask. Leave both files
    unchanged. Do not merge by hand and do not continue by guessing.
 
 ## Report
