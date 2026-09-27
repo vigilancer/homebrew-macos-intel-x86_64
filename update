@@ -19,7 +19,7 @@ fi
 
 if [ ! -d "$brew/.git" ]; then
   mkdir -p "$brew"
-  git -C "$brew" init -b master
+  git -C "$brew" init -b main
 fi
 
 git -C "$brew" config advice.implicitIdentity false
@@ -44,14 +44,26 @@ The upstream tag pointed at ${upstream_commit}.
 It was moved on purpose and now points at this commit."
 }
 
+# Homebrew tracks origin/main. The tag fetch does not create that branch.
+on_main() {
+  branch=$(git -C "$brew" symbolic-ref --short HEAD 2>/dev/null || true)
+  if [ -n "$branch" ] && [ "$branch" != main ]; then
+    git -C "$brew" branch -M main
+  fi
+  if git -C "$brew" show-ref --verify --quiet refs/heads/master; then
+    git -C "$brew" branch -D master
+  fi
+}
+
 if [ -n "$head" ] && [ "$head" = "$tag_commit" ] &&
    git -C "$brew" merge-base --is-ancestor "$upstream_commit" "$head"
 then
+  on_main
   echo "brew is already ${latest} plus patches"
   exit 0
 fi
 
-git -C "$brew" checkout -B master "$upstream_commit"
+git -C "$brew" checkout -B main "$upstream_commit"
 
 set -- "$patchdir"/*.patch
 if [ ! -f "$1" ]; then
@@ -72,4 +84,5 @@ for name in $patches; do
 done
 IFS=$oldifs
 move_tag
-echo "brew master moved to ${latest} plus patches"
+on_main
+echo "brew main moved to ${latest} plus patches"
