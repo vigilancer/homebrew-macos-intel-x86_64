@@ -17,7 +17,7 @@ git clone https://github.com/vigilancer/homebrew-macos-intel-x86_64.git ~/brew-s
 
 ```sh
 cd ~/brew-self
-rm patches/0001-unsupported-os.patch
+rm patches/0001-unsupported-os-silent.patch
 rm patches/0002-build-from-source.patch
 rm patches/0003-formula-overlay.patch
 rm patches/0004-forbid-casks-no-whining.patch
@@ -83,7 +83,7 @@ brew-update() {
 
 ## short overview of patches
 
-`0001-unsupported-os.patch`  
+`0001-unsupported-os-silent.patch`  
 Makes it possible to disable the annoying warning that Intel macOS is not supported.  
 Take that Apple Silicon!
 
