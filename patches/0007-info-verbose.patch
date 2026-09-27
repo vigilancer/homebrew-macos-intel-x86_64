@@ -1,0 +1,43 @@
+diff --git a/Library/Homebrew/cmd/info.rb b/Library/Homebrew/cmd/info.rb
+index 49df60a459..b19f22de8d 100644
+--- a/Library/Homebrew/cmd/info.rb
++++ b/Library/Homebrew/cmd/info.rb
+@@ -77,6 +77,7 @@ module Homebrew
+                depends_on:  "--json",
+                description: "Include the variations hash in each formula's JSON output."
+         switch "-v", "--verbose",
++               env:         :info_verbose,
+                description: "Show more verbose data for <formula>, or full information with `--installed`."
+         switch "--formula", "--formulae",
+                description: "Treat all named arguments as formulae."
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+index f0647e802a..bc331dea36 100644
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -800,6 +800,10 @@ module Homebrew
+         description: "If set, always assume `--verbose` when running commands.",
+         boolean:     :set,
+       },
++      HOMEBREW_INFO_VERBOSE:                     {
++        description: "If set, `brew info` shows the same output as `--verbose`.",
++        boolean:     true,
++      },
+       HOMEBREW_VERBOSE_USING_DOTS:               {
+         description: "If set, verbose output will print a `.` no more than once a minute. This can be " \
+                      "useful to avoid long-running Homebrew commands being killed due to no output.",
+diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/info_spec.rb
+index 8c3b94f49c..1a9d836093 100644
+--- a/Library/Homebrew/test/cmd/info_spec.rb
++++ b/Library/Homebrew/test/cmd/info_spec.rb
+@@ -1712,4 +1712,11 @@ RSpec.describe Homebrew::Cmd::Info do
+                "#{formula_path.relative_path_from(tap.path)}")
+     end
+   end
++
++  it "enables --verbose when HOMEBREW_INFO_VERBOSE is set" do
++    ENV["HOMEBREW_INFO_VERBOSE"] = "1"
++    expect(described_class.new([]).args.verbose?).to be true
++  ensure
++    ENV.delete("HOMEBREW_INFO_VERBOSE")
++  end
+ end

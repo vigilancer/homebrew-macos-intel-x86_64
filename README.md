@@ -23,6 +23,7 @@ rm patches/0003-formula-overlay.patch
 rm patches/0004-odeprecated-silent.patch
 rm patches/0005-info-installed-dependents.patch
 rm patches/0006-info-recursive-runtime-names.patch
+rm patches/0007-info-verbose.patch
 ```
 
 3. brew your own
@@ -47,6 +48,7 @@ HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
 HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
 HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
 HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
+HOMEBREW_INFO_VERBOSE=1                           # patch 0007
 EOF
 ```
 
@@ -115,6 +117,10 @@ Only shown in a terminal, same as the old one-line dependent count.
 `brew info` prints the names in `Recursive Runtime`, not only a count.  
 Each name is marked installed or missing.  
 The list is the runtime tree recorded when the formula was installed.
+
+`0007-info-verbose.patch`  
+Adds `$HOMEBREW_INFO_VERBOSE`.  
+If it is set, `brew info` shows the same output as `brew info --verbose`.
 
 ## caveats
 
