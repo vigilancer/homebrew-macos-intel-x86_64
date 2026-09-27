@@ -1,0 +1,188 @@
+diff --git a/Library/Homebrew/cmd/info.rb b/Library/Homebrew/cmd/info.rb
+index af384099e3..7f65bb6ebb 100644
+--- a/Library/Homebrew/cmd/info.rb
++++ b/Library/Homebrew/cmd/info.rb
+@@ -211,29 +211,55 @@ module Homebrew
+           "#{missing_count} missing #{Formatter.error("✘")}"
+       end
+ 
+-      sig { params(full_name: String, name: String).returns(T::Array[String]) }
+-      def self.installed_dependent_names(full_name, name)
+-        Formula.racks.filter_map do |rack|
+-          keg = Keg.from_rack(rack)
+-          next unless keg
+-
+-          tab_path = keg/AbstractTab::FILENAME
+-          next unless tab_path.file?
++      # Installed formulae that declare `formula` as a dependency, grouped the way
++      # `brew uses` classifies them. Implicit deps are listed only as implicit:
++      # Homebrew tags those with `:build` and `:test` as well.
++      sig { params(formula: Formula).returns(T::Array[String]) }
++      def self.installed_dependent_lines(formula)
++        names_by_type = T.let({
++          "Build"       => [],
++          "Required"    => [],
++          "Recommended" => [],
++          "Optional"    => [],
++          "Test"        => [],
++          "Implicit"    => [],
++        }, T::Hash[String, T::Array[String]])
++
++        Formula.installed.each do |dependent|
++          next if dependent.full_name == formula.full_name
++
++          dependent.deps.each do |dep|
++            next unless dependency_named?(dep, formula)
++
++            if dep.implicit?
++              names_by_type.fetch("Implicit") << dependent.full_name
++            else
++              names_by_type.fetch("Build") << dependent.full_name if dep.build?
++              names_by_type.fetch("Test") << dependent.full_name if dep.test?
++              names_by_type.fetch("Optional") << dependent.full_name if dep.optional?
++              names_by_type.fetch("Recommended") << dependent.full_name if dep.recommended?
++              names_by_type.fetch("Required") << dependent.full_name if dep.required?
++            end
++          end
++        end
+ 
+-          # Fast path: skip JSON parsing when the formula name
+-          # does not appear anywhere in the raw receipt.
+-          content = File.read(tab_path)
+-          next unless content.include?(name)
++        names_by_type.filter_map do |type, names|
++          names = names.uniq.sort
++          next if names.empty?
+ 
+-          tab_deps = Tab.from_file_content(content, tab_path).runtime_dependencies
+-          next unless tab_deps
++          "#{type} (#{names.length}): #{names.join(", ")}"
++        end
++      end
+ 
+-          dependent = tab_deps.any? do |dep|
+-            dep_full_name = T.cast(dep, T::Hash[String, T.untyped])["full_name"]
+-            dep_full_name == full_name || dep_full_name&.then { Utils.name_from_full_name(it) } == name
+-          end
+-          keg.name if dependent
+-        end.sort.uniq
++      sig { params(dep: Dependency, formula: Formula).returns(T::Boolean) }
++      def self.dependency_named?(dep, formula)
++        if dep.name.include?("/")
++          dep.to_formula.full_name == formula.full_name
++        else
++          dep.name == formula.name || dep.name == formula.full_name
++        end
++      rescue FormulaUnavailableError
++        false
+       end
+ 
+       sig { params(formula: Formula).returns(T::Array[String]) }
+@@ -541,11 +567,6 @@ module Homebrew
+         end
+ 
+         tab_runtime_deps = kegs.last&.runtime_dependencies
+-        installed_dependents = if $stdout.tty? && kegs.any?
+-          self.class.installed_dependent_names(formula.full_name, formula.name)
+-        else
+-          [].freeze
+-        end
+         dependency_lines = %w[build required recommended optional].filter_map do |type|
+           next if type == "build" &&
+                   (kegs.all? { |keg| keg.tab.poured_from_bottle } ||
+@@ -563,7 +584,7 @@ module Homebrew
+             "#{decorate_dependencies(deps, tab_runtime_deps: tab_deps, mark_uninstalled:,
+                                      formula_outdated: outdated, missing_library_deps:)}"
+         end
+-        if dependency_lines.present? || tab_runtime_deps.present? || installed_dependents.any?
++        if dependency_lines.present? || tab_runtime_deps.present?
+           ohai "Dependencies"
+           puts dependency_lines
+           missing_library_names = missing_libraries.map { |lib| File.basename(lib) }.uniq
+@@ -582,12 +603,13 @@ module Homebrew
+             puts "Recursive Runtime (#{tab_runtime_deps.count}): " \
+                  "#{self.class.dependency_status_counts(installed_count, tab_runtime_deps.count)}"
+           end
+-          if installed_dependents.any?
+-            if args.verbose?
+-              puts "Dependents (#{installed_dependents.count}): #{installed_dependents.join(", ")}"
+-            else
+-              puts "Dependents: #{installed_dependents.count}"
+-            end
++        end
++
++        if $stdout.tty?
++          dependent_lines = self.class.installed_dependent_lines(formula)
++          if dependent_lines.any?
++            ohai "Dependents"
++            puts dependent_lines
+           end
+         end
+ 
+diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/info_spec.rb
+index 3d54b06f55..9623300c40 100644
+--- a/Library/Homebrew/test/cmd/info_spec.rb
++++ b/Library/Homebrew/test/cmd/info_spec.rb
+@@ -557,7 +557,7 @@ RSpec.describe Homebrew::Cmd::Info do
+     expect(JSON.parse(output).first["tap"]).to eq("homebrew/core")
+   end
+ 
+-  it "prints required, recursive runtime, and dependent counts in the dependencies section" do
++  it "prints required and recursive runtime dependencies, and installed dependents" do
+     allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
+ 
+     info = described_class.new([])
+@@ -599,13 +599,21 @@ RSpec.describe Homebrew::Cmd::Info do
+     ]
+     dependent_tab.write
+ 
++    some_dependent = formula("some-dependent") do
++      T.bind(self, T.class_of(Formula))
++      url "https://brew.sh/some-dependent-1.0.tar.gz"
++      depends_on "testball"
++    end
++    allow(Formula).to receive(:installed).and_return([some_dependent])
++
+     allow(info).to receive(:github_info).with(formula).and_return("https://example.com/testball.rb")
+     allow(formula).to receive_messages(core_formula?: false, missing_library_linkage: [[], Set.new])
+     allow(direct_dependency).to receive(:satisfied?).and_return(true)
+ 
+     expected_output = Regexp.new(
+       "==> Dependencies\nRequired \\(1\\): .*bar.*\n" \
+-      "Recursive Runtime \\(2\\): 1 installed .*✔, 1 missing .*✘\nDependents: 1",
++      "Recursive Runtime \\(2\\): 1 installed .*✔, 1 missing .*✘\n" \
++      "==> Dependents\nRequired \\(1\\): some-dependent",
+     )
+     expect { info.info_formula(formula) }
+       .to output(expected_output).to_stdout
+@@ -613,7 +621,7 @@ RSpec.describe Homebrew::Cmd::Info do
+       .and not_to_output.to_stderr
+   end
+ 
+-  it "lists installed dependents inline under Dependencies with --verbose" do
++  it "lists installed dependents by dependency type" do
+     allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
+ 
+     info = described_class.new(["--verbose"])
+@@ -641,11 +649,20 @@ RSpec.describe Homebrew::Cmd::Info do
+       dependent_tab.write
+     end
+ 
++    installed = %w[some-dependent another-dependent].map do |dependent_name|
++      formula(dependent_name) do
++        T.bind(self, T.class_of(Formula))
++        url "https://brew.sh/#{dependent_name}-1.0.tar.gz"
++        depends_on "testball"
++      end
++    end
++    allow(Formula).to receive(:installed).and_return(installed)
++
+     allow(info).to receive(:github_info).with(formula).and_return("https://example.com/testball.rb")
+     allow(formula).to receive_messages(core_formula?: false, missing_library_linkage: [[], Set.new])
+ 
+     expect { info.info_formula(formula) }
+-      .to output(/^Dependents \(2\): another-dependent, some-dependent$/).to_stdout
++      .to output(/==> Dependents\nRequired \(2\): another-dependent, some-dependent/).to_stdout
+       .and not_to_output(/^Dependents: /).to_stdout
+       .and not_to_output.to_stderr
+   end
