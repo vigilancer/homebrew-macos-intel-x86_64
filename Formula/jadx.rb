@@ -8,16 +8,20 @@ class Jadx < Formula
   head "https://github.com/skylot/jadx.git", branch: "master"
 
   depends_on "gradle" => :build
-  depends_on "openjdk"
 
   def install
     ENV["JADX_VERSION"] = version.to_s if build.stable?
 
     system "gradle", "clean", "dist"
     libexec.install Dir["build/jadx/*"]
-    bin.install libexec/"bin/jadx"
-    bin.install libexec/"bin/jadx-gui"
-    bin.env_script_all_files libexec/"bin", Language::Java.overridable_java_home_env
+    (bin/"jadx").write <<~SHELL
+      #!/bin/bash
+      exec "#{libexec}/bin/jadx" "$@"
+    SHELL
+    (bin/"jadx-gui").write <<~SHELL
+      #!/bin/bash
+      exec "#{libexec}/bin/jadx-gui" "$@"
+    SHELL
   end
 
   test do
