@@ -1,11 +1,7 @@
 --- upstream/wget.rb
 +++ Formula/wget.rb
-@@ -2,21 +2,12 @@
-   desc "Internet file retriever"
-   homepage "https://www.gnu.org/software/wget/"
-   license "GPL-3.0-or-later"
--  revision 2
-+  revision 3
+@@ -5,18 +5,9 @@
+   revision 2
    compatibility_version 1
  
 -  stable do

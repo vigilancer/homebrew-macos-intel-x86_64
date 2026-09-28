@@ -2,7 +2,7 @@ class Wget < Formula
   desc "Internet file retriever"
   homepage "https://www.gnu.org/software/wget/"
   license "GPL-3.0-or-later"
-  revision 3
+  revision 2
   compatibility_version 1
 
   url "https://ftpmirror.gnu.org/wget/wget-1.25.0.tar.gz"
