@@ -28,34 +28,46 @@ rm patches/0007-info-verbose.patch
 
 3. brew your own
 
-   this will fetch the latest `brew` release with full history into the `brew` folder and apply patches to it.
+   this will fetch the latest `brew` release with full history into `.bare` and check `brew` out as a worktree of the latest version tag, then apply patches to it. If `.bare` is already there and the fetch fails, it warns and continues with the tags it has.
 
    brew? brew! ah, brew...
 
 ```sh
-./update
+./update-and-patch
 ```
 
-4. set new source for `brew` updates
+4. point the installed Homebrew at this checkout
 
-   and enable the patches you kept
+   `./enable` writes `HOMEBREW_BREW_GIT_REMOTE` in `~/.homebrew/brew.env`
+   (uncommenting it if it was commented, replacing it if it was already set)
+   and points the install's `origin` at this checkout. It does not apply patches
+   and does not update the installed Homebrew. After that, `brew update` fetches
+   from the patched repo.
 
 ```sh
-mkdir -p ~/.homebrew
-cat > ~/.homebrew/brew.env << EOF
-HOMEBREW_BREW_GIT_REMOTE=$HOME/brew-self/brew
+./enable
+```
+
+   `./disable` comments that line out and resets the install onto the latest official tag already stored in `.bare`.
+
+```sh
+./disable
+```
+
+   The other switches still go in `brew.env` yourself:
+
+```sh
 HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
 HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
 HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
 HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
 HOMEBREW_INFO_VERBOSE=1                           # patch 0007
-EOF
 ```
 
-5. update brew
+5. pick up a newer patched tag
 
 ```sh
-brew update
+./update-and-patch && brew update-reset
 ```
 
 6. check that everything goes as expected
@@ -65,24 +77,6 @@ brew config
 ```
 
    `ORIGIN` should match `HOMEBREW_BREW_GIT_REMOTE`.
-
-7. (optionally) add shell alias
-
-   fish:
-
-```fish
-function brew-update
-    ~/brew-self/update; and brew update $argv
-end
-```
-
-   bash & zsh:
-
-```bash
-brew-update() {
-    ~/brew-self/update && brew update "$@"
-}
-```
 
 ## short overview of patches
 

@@ -1,0 +1,60 @@
+#!/bin/sh
+set -eu
+
+manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+bare=$manage/.bare
+official=https://github.com/Homebrew/brew
+
+env_file() {
+  if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+    printf '%s\n' "${XDG_CONFIG_HOME}/homebrew/brew.env"
+  elif [ -n "${HOMEBREW_XDG_CONFIG_HOME:-}" ]; then
+    printf '%s\n' "${HOMEBREW_XDG_CONFIG_HOME}/homebrew/brew.env"
+  else
+    printf '%s\n' "${HOME}/.homebrew/brew.env"
+  fi
+}
+
+comment_remote() {
+  file=$1
+  [ -f "$file" ] || return 0
+  tmp=$(mktemp)
+  awk '
+    /^[[:space:]]*HOMEBREW_BREW_GIT_REMOTE=/ {
+      sub(/^[[:space:]]*/, "")
+      print "# " $0
+      next
+    }
+    { print }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+}
+
+file=$(env_file)
+comment_remote "$file"
+echo "commented HOMEBREW_BREW_GIT_REMOTE in $file"
+
+if [ ! -d "$bare" ]; then
+  echo "error: .bare is missing" >&2
+  exit 1
+fi
+
+latest=$(
+  git -C "$bare" for-each-ref --format='%(refname:strip=2)' refs/upstream-tags |
+    sed -n 's/^\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' |
+    sort -V |
+    tail -n 1
+)
+if [ -z "$latest" ]; then
+  echo "error: no upstream X.Y.Z tag in .bare" >&2
+  exit 1
+fi
+
+repo=$(brew --repository)
+git -C "$repo" rebase --abort 2>/dev/null || true
+git -C "$repo" fetch "$bare" "+refs/upstream-tags/${latest}:refs/tags/${latest}"
+git -C "$repo" checkout --force -B stable "refs/tags/${latest}"
+git -C "$repo" remote set-url origin "$official"
+rm -rf "$repo/.git/describe-cache" 2>/dev/null || true
+
+echo "official brew is on $(git -C "$repo" describe --tags) ($(git -C "$repo" rev-parse --short HEAD))"

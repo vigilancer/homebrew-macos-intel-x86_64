@@ -1,0 +1,66 @@
+#!/bin/sh
+set -eu
+
+manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+remote=$manage/brew
+
+env_file() {
+  if [ -n "${XDG_CONFIG_HOME:-}" ]; then
+    printf '%s\n' "${XDG_CONFIG_HOME}/homebrew/brew.env"
+  elif [ -n "${HOMEBREW_XDG_CONFIG_HOME:-}" ]; then
+    printf '%s\n' "${HOMEBREW_XDG_CONFIG_HOME}/homebrew/brew.env"
+  else
+    printf '%s\n' "${HOME}/.homebrew/brew.env"
+  fi
+}
+
+# Active assignment wins. A comment is uncommented only when nothing active is set.
+set_remote() {
+  file=$1
+  value=$2
+  mkdir -p "$(dirname "$file")"
+  [ -f "$file" ] || : >"$file"
+  tmp=$(mktemp)
+  if grep -q '^[[:space:]]*HOMEBREW_BREW_GIT_REMOTE=' "$file"; then
+    awk -v value="$value" '
+      /^[[:space:]]*HOMEBREW_BREW_GIT_REMOTE=/ && !done {
+        print "HOMEBREW_BREW_GIT_REMOTE=" value
+        done = 1
+        next
+      }
+      { print }
+    ' "$file" >"$tmp"
+  elif grep -q '^[[:space:]]*#[[:space:]]*HOMEBREW_BREW_GIT_REMOTE=' "$file"; then
+    awk -v value="$value" '
+      /^[[:space:]]*#[[:space:]]*HOMEBREW_BREW_GIT_REMOTE=/ && !done {
+        print "HOMEBREW_BREW_GIT_REMOTE=" value
+        done = 1
+        next
+      }
+      { print }
+    ' "$file" >"$tmp"
+  else
+    cp "$file" "$tmp"
+    printf '\nHOMEBREW_BREW_GIT_REMOTE=%s\n' "$value" >>"$tmp"
+  fi
+  mv "$tmp" "$file"
+}
+
+file=$(env_file)
+set_remote "$file" "$remote"
+echo "HOMEBREW_BREW_GIT_REMOTE=$remote in $file"
+
+repo=$(brew --repository)
+git -C "$repo" rebase --abort 2>/dev/null || true
+git -C "$repo" remote set-url origin "$remote"
+git -C "$repo" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+
+echo "origin of $repo is $remote"
+echo
+echo "Run this to fetch the patched Homebrew:"
+echo
+echo "    brew update"
+echo
+echo "Then check ORIGIN, HOMEBREW_VERSION and HEAD:"
+echo
+echo "    brew config"

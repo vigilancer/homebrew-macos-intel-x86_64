@@ -12,7 +12,7 @@ description: >-
 
 # Maintain brew-self
 
-Repo root is the checkout that contains `./update`, `patches/`, and `Formula/`.
+Repo root is the checkout that contains `./update-and-patch`, `patches/`, and `Formula/`.
 `brew/` is a gitignored full-history checkout of Homebrew/brew. Do not commit
 or push unless the user asks.
 
@@ -42,26 +42,26 @@ Do not guess past these:
 
 ## Brew
 
-Goal: `./update` leaves `brew/` at the latest `X.Y.Z` tag from
+Goal: `./update-and-patch` leaves `brew/` at the latest `X.Y.Z` tag from
 https://github.com/Homebrew/brew plus every `patches/*.patch`, with that tag
 moved onto the patched commit. The user's `brew update` follows
 `HOMEBREW_BREW_GIT_REMOTE` and picks this up. Do not run the user's
 `brew update`.
 
-1. Read `./update` and the patch blurbs in `README.md` before editing anything.
-2. Run `./update`. It fetches the latest `X.Y.Z` tag, resets `brew` main onto
+1. Read `./update-and-patch` and the patch blurbs in `README.md` before editing anything.
+2. Run `./update-and-patch`. It fetches the latest `X.Y.Z` tag, resets `brew` main onto
    that commit, applies `patches/*.patch` in version order, commits each one
    inside `brew/`, and force-moves the tag.
 3. If it prints `brew is already <version> plus patches`, this task is done.
 4. If `git apply` fails, the patch files in `patches/` are the source of truth,
    not the half-applied `brew/` worktree. Fix the failing patch so the hunk
    matches current upstream and the behavior in the README blurb still holds.
-   Re-run `./update`. A later run checks out the upstream commit again, so a
+   Re-run `./update-and-patch`. A later run checks out the upstream commit again, so a
    failed mid-apply is discarded.
 5. After a successful apply on a new tag, read each hunk in the patched tree.
    Confirm the flag, branch, or message still does what the patch is for.
    Context can apply onto the wrong block. If the behavior drifted, fix the
-   patch file and re-run `./update`.
+   patch file and re-run `./update-and-patch`.
 6. Durable repo edits are under `patches/`. Commits inside `brew/` stay local.
 
 ## Overlay
