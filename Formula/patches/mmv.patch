@@ -1,0 +1,10 @@
+--- upstream/mmv.rb
++++ Formula/mmv.rb
+@@ -17,7 +17,6 @@
+     sha256 cellar: :any_skip_relocation, x86_64_linux:      "eb72ba0164ea3fb58177cc5a9ee2470c1614913a78e86ed91fa3026e36f861c3"
+   end
+ 
+-  depends_on "help2man" => :build # for patch
+   depends_on "pkgconf" => :build
+   depends_on "bdw-gc"
+ 
