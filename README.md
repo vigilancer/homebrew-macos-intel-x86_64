@@ -94,7 +94,8 @@ Now it is possible to create a local overlay for any formula.
 No need to mess with taps.  
 No need to wait for upstream fixes.  
 Just create a formula with the same name locally and brew will treat it like a regular formula.  
-Place your overlays in `$HOME/brew-self/Formula/`.
+Place your overlays in `$HOME/brew-self/Formula/`.  
+`brew fetch` and `brew install` may reload that file by path; the overlay directory is allowed, and the formula stays in `homebrew/core`.
 
 `0004-odeprecated-silent.patch`  
 Adds `$HOMEBREW_ODEPRECATED_AND_I_DONT_CARE`.  

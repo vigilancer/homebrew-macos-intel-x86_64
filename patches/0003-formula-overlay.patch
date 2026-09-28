@@ -17,7 +17,19 @@ diff --git a/Library/Homebrew/formulary.rb b/Library/Homebrew/formulary.rb
 index 2edebfc..a512538 100644
 --- a/Library/Homebrew/formulary.rb
 +++ b/Library/Homebrew/formulary.rb
-@@ -916,6 +916,36 @@ module Formulary
+@@ -624,6 +624,11 @@ module Formulary
+         tap = Homebrew::API.tap_from_source_download(path)
+       end
+ 
++      if tap.nil? && (overlay = Homebrew::EnvConfig.formula_overlay).present? &&
++         ::Utils::Path.child_of?(overlay, path)
++        tap = CoreTap.instance
++      end
++
+       return if path.extname != ".rb"
+ 
+       if path.parent.basename.to_s == ".brew"
+@@ -916,6 +921,36 @@ module Formulary
      end
    end
  
@@ -62,3 +74,16 @@ index 2edebfc..a512538 100644
        FromAPILoader,
        FromTapLoader,
        FromPathLoader,
+diff --git a/Library/Homebrew/utils/path.rb b/Library/Homebrew/utils/path.rb
+--- a/Library/Homebrew/utils/path.rb
++++ b/Library/Homebrew/utils/path.rb
+@@ -250,6 +250,9 @@ module Utils
+         trusted_package_root(Cask::Caskroom.path)
+       end
+ 
++      overlay = Homebrew::EnvConfig.formula_overlay
++      allowed_paths << trusted_package_root(overlay) if overlay.present?
++
+       # Casks can also be loaded from local JSON files, not just Ruby.
+       package_extnames = (package_type == :cask) ? %w[.rb .json] : %w[.rb]
+       return true if package_extnames.none? { |ext| path_realpath.end_with?(ext) || path_string.end_with?(ext) }
