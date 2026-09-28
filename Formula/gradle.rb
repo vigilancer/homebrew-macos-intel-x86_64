@@ -15,7 +15,6 @@ class Gradle < Formula
   end
 
   depends_on "openjdk@25"
-  depends_on "gradle-completion" => :optional
 
   allow_network_access! :test
 

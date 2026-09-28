@@ -1,0 +1,24 @@
+--- upstream/git-lfs.rb
++++ Formula/git-lfs.rb
+@@ -22,7 +22,6 @@
+     sha256 cellar: :any,                 x86_64_linux:      "518268f40ab88089067c73ecde9776aa96e9cdd0c7d5e2f54561440065c5ee3d"
+   end
+ 
+-  depends_on "asciidoctor" => :build
+   depends_on "go" => :build
+ 
+   deny_network_access!
+@@ -36,13 +35,7 @@
+     ENV["VERSION"] = version
+ 
+     system "make"
+-    system "make", "man"
+-
+     bin.install "bin/git-lfs"
+-    man1.install Dir["man/man1/*.1"]
+-    man5.install Dir["man/man5/*.5"]
+-    man7.install Dir["man/man7/*.7"]
+-    doc.install Dir["man/html/*.html"]
+     generate_completions_from_executable(bin/"git-lfs", "completion")
+   end
+ 
