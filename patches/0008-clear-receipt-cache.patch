@@ -1,0 +1,70 @@
+diff --git a/Library/Homebrew/formula_installer.rb b/Library/Homebrew/formula_installer.rb
+index 6ccdd0bd0cf8a..b4ac07e6c7e67 100644
+--- a/Library/Homebrew/formula_installer.rb
++++ b/Library/Homebrew/formula_installer.rb
+@@ -625,6 +625,7 @@ def install
+ 
+     unless @poured_bottle
+       build
++      Tab.clear_cache
+       clean
+ 
+       # Store the formula used to build the keg in the keg.
+diff --git a/Library/Homebrew/test/reinstall_spec.rb b/Library/Homebrew/test/reinstall_spec.rb
+index ec11dbc511bb2..5c0af5e055600 100644
+--- a/Library/Homebrew/test/reinstall_spec.rb
++++ b/Library/Homebrew/test/reinstall_spec.rb
+@@ -2,6 +2,7 @@
+ # frozen_string_literal: true
+ 
+ require "reinstall"
++require "test/support/fixtures/testball"
+ 
+ RSpec.describe Homebrew::Reinstall do
+   describe ".build_install_context" do
+@@ -22,6 +23,31 @@
+   end
+ 
+   describe ".reinstall_formula" do
++    it "preserves new build metadata when reinstalling the same version from source" do
++      ENV["HOMEBREW_NO_INSTALL_FROM_API"] = "1"
++      formula = Testball.new
++      formula.prefix.mkpath
++      tab = Tab.create(formula)
++      tab.homebrew_version = "1.0.0"
++      tab.built_on = { "os_version" => "macOS 10.15" }
++      tab.poured_from_bottle = true
++      tab.installed_on_request = true
++      tab.write
++
++      context = described_class.build_install_context(formula, flags:                      [],
++                                                               build_from_source_formulae: [formula.full_name])
++      context.formula_installer.fetch
++
++      described_class.reinstall_formula(context)
++
++      expect(JSON.parse((formula.prefix/AbstractTab::FILENAME).read)).to include(
++        "homebrew_version"     => HOMEBREW_VERSION,
++        "built_on"             => DevelopmentTools.build_system_info,
++        "poured_from_bottle"   => false,
++        "installed_on_request" => true,
++      )
++    end
++
+     it "restores and relinks a backup keg when reinstalling fails", :integration_test do
+       setup_test_formula "testball", tab_attributes: { installed_on_request: true }
+       formula = Formula["testball"]
+diff --git a/docs/Common-Issues.md b/docs/Common-Issues.md
+index 22ea57e0c790b..2f659bcc61eb2 100644
+--- a/docs/Common-Issues.md
++++ b/docs/Common-Issues.md
+@@ -86,6 +86,9 @@ A macOS upgrade may replace or invalidate the Command Line Tools and libraries u
+ 3. Run `brew update`.
+ 4. Run `brew upgrade` to rebuild or reinstall outdated formulae.
+ 
++After a major macOS upgrade, Homebrew may rebuild some packages (like `pkgconf`) from source to update its system library search paths.
++The rebuilt installation records the current macOS version, so subsequent `brew upgrade` runs should not repeat that rebuild for the same version mismatch.
++
+ Do not create symlinks for missing versioned libraries.
+ Those links can hide an incomplete upgrade and cause incompatible software to load the wrong library.
+ 

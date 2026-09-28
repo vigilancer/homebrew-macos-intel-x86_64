@@ -117,6 +117,12 @@ The list is the runtime tree recorded when the formula was installed.
 Adds `$HOMEBREW_INFO_VERBOSE`.  
 If it is set, `brew info` shows the same output as `brew info --verbose`.
 
+`0008-clear-receipt-cache.patch`  
+After a source build, drops the cached install receipt before it is read back.  
+Otherwise `brew reinstall` writes the previous bottle receipt over the new one, and `brew info` still says "Poured from bottle".  
+This is [Homebrew/brew#24098](https://github.com/Homebrew/brew/pull/24098), merged to `main` after 7.0.6.  
+On 7.0.7, delete this patch if `Tab.clear_cache` already follows `build` in `formula_installer.rb`.
+
 ## caveats
 
 As you can see, there is no way yet to tie patches to a specific `brew` version.  
