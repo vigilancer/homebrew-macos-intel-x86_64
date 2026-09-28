@@ -1,0 +1,29 @@
+--- upstream/abseil.rb
++++ Formula/abseil.rb
+@@ -19,25 +19,19 @@
+   end
+ 
+   depends_on "cmake" => [:build, :test]
+-  depends_on "googletest" => :build # For test helpers
+ 
+   deny_network_access!
+ 
+   def install
+     ENV.runtime_cpu_detection
+ 
+-    # Install test helpers.
+-    extra_cmake_args = %w[ABSL_BUILD_TEST_HELPERS ABSL_USE_EXTERNAL_GOOGLETEST ABSL_FIND_GOOGLETEST].map do |arg|
+-      "-D#{arg}=ON"
+-    end
+-
+     system "cmake", "-S", ".", "-B", "build",
+                     "-DCMAKE_INSTALL_RPATH=#{rpath}",
+                     "-DCMAKE_CXX_STANDARD=17",
+                     "-DBUILD_SHARED_LIBS=ON",
+                     "-DABSL_PROPAGATE_CXX_STD=ON",
+                     "-DABSL_ENABLE_INSTALL=ON",
+-                    *extra_cmake_args, *std_cmake_args
++                    *std_cmake_args
+     system "cmake", "--build", "build"
+     system "cmake", "--install", "build"
+   end
