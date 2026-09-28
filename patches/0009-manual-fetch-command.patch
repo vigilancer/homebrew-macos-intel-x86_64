@@ -1,0 +1,114 @@
+diff --git a/Library/Homebrew/download_strategy/abstract_download_strategy.rb b/Library/Homebrew/download_strategy/abstract_download_strategy.rb
+index 9d313c0665..2b4f3ed867 100644
+--- a/Library/Homebrew/download_strategy/abstract_download_strategy.rb
++++ b/Library/Homebrew/download_strategy/abstract_download_strategy.rb
+@@ -79,6 +79,13 @@ class AbstractDownloadStrategy
+     Context.current.quiet? || @quiet || false
+   end
+ 
++  # A command that downloads this resource into {#cached_location}.
++  # Printed during fetch so a stalled download can be resumed by hand.
++  sig { returns(T.nilable(String)) }
++  def manual_fetch_command
++    nil
++  end
++
+   sig { params(downloader: AbstractDownloadStrategy).returns(T::Boolean) }
+   def self.expand_deferred_environment_for?(downloader)
+     HOMEBREW_CONTROLLED_STRATEGIES.include?(downloader.class)
+diff --git a/Library/Homebrew/download_strategy/curl_download_strategy.rb b/Library/Homebrew/download_strategy/curl_download_strategy.rb
+index 4dc29d31a7..e7a7a92e94 100644
+--- a/Library/Homebrew/download_strategy/curl_download_strategy.rb
++++ b/Library/Homebrew/download_strategy/curl_download_strategy.rb
+@@ -193,6 +193,14 @@ class CurlDownloadStrategy < AbstractFileDownloadStrategy
+     args
+   end
+ 
++  sig { override.returns(String) }
++  def manual_fetch_command
++    require "shellwords"
++    incomplete = temporary_path.to_s.shellescape
++    destination = cached_location.to_s.shellescape
++    "curl -fL --retry 3 --continue-at - --output #{incomplete} #{url.shellescape} && mv #{incomplete} #{destination}"
++  end
++
+   private
+ 
+   sig { params(timeout: T.nilable(T.any(Float, Integer))).returns([String, String]) }
+ 
+diff --git a/Library/Homebrew/download_strategy/git_download_strategy.rb b/Library/Homebrew/download_strategy/git_download_strategy.rb
+index 41cedff707..9078cb036c 100644
+--- a/Library/Homebrew/download_strategy/git_download_strategy.rb
++++ b/Library/Homebrew/download_strategy/git_download_strategy.rb
+@@ -59,6 +59,18 @@ class GitDownloadStrategy < VCSDownloadStrategy
+       .success?
+   end
+ 
++  sig { override.returns(String) }
++  def manual_fetch_command
++    require "shellwords"
++    dest = cached_location.to_s.shellescape
++    clone = ["git", "clone", "--config", "advice.detachedHead=false", "--config", "core.fsmonitor=false"]
++    clone += ["--branch", @ref] if [:branch, :tag].include?(@ref_type) && @ref.present?
++    clone += ["--", url, cached_location.to_s]
++    command = "rm -rf #{dest} && #{clone.shelljoin}"
++    command = "#{command} && git -C #{dest} checkout -f #{@ref.to_s.shellescape} --" if @ref.present?
++    command
++  end
++
+   sig { returns(T::Array[String]) }
+   def clone_args
+     args = %w[clone]
+diff --git a/Library/Homebrew/downloadable.rb b/Library/Homebrew/downloadable.rb
+index 5a15ab77b5..72f9aa2fab 100644
+--- a/Library/Homebrew/downloadable.rb
++++ b/Library/Homebrew/downloadable.rb
+@@ -297,6 +297,12 @@ module Downloadable
+ 
+     begin
+       downloader.quiet! if quiet
++      if Homebrew::EnvConfig.fetch_print_command? && (command = downloader.manual_fetch_command)
++        $stderr.puts
++        $stderr.puts "#{download_queue_message}:"
++        $stderr.puts "  #{command}"
++        $stderr.puts
++      end
+       downloader.fetch(timeout:)
+     rescue ErrorDuringExecution, CurlDownloadStrategyError => e
+       raise DownloadError.new(self, e)
+diff --git a/Library/Homebrew/cmd/fetch.rb b/Library/Homebrew/cmd/fetch.rb
+--- a/Library/Homebrew/cmd/fetch.rb
++++ b/Library/Homebrew/cmd/fetch.rb
+@@ -47,6 +47,9 @@ module Homebrew
+                             "exponential backoff."
+         switch "--deps",
+                description: "Also download dependencies for any listed <formula>."
++        switch "--print-command",
++               description: "Print a command that downloads each file or repository into the Homebrew cache. " \
++                            "Also enabled by `$HOMEBREW_FETCH_PRINT_COMMAND`."
+         switch "-s", "--build-from-source",
+                description: "Download source packages rather than a bottle."
+         switch "--build-bottle",
+@@ -78,6 +81,8 @@ module Homebrew
+ 
+       sig { override.void }
+       def run
++        ENV["HOMEBREW_FETCH_PRINT_COMMAND"] = "1" if args.print_command?
++
+         Formulary.enable_factory_cache!
+ 
+         if enqueue_api_formula_bottles? || enqueue_api_cask_downloads?
+diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
+--- a/Library/Homebrew/env_config.rb
++++ b/Library/Homebrew/env_config.rb
+@@ -804,6 +804,10 @@ module Homebrew
+         description: "If set, `brew info` shows the same output as `--verbose`.",
+         boolean:     true,
+       },
++      HOMEBREW_FETCH_PRINT_COMMAND:              {
++        description: "If set, print a command that downloads each file or repository into the Homebrew cache.",
++        boolean:     true,
++      },
+       HOMEBREW_VERBOSE_USING_DOTS:               {
+         description: "If set, verbose output will print a `.` no more than once a minute. This can be " \
+                      "useful to avoid long-running Homebrew commands being killed due to no output.",

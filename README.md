@@ -123,6 +123,11 @@ Otherwise `brew reinstall` writes the previous bottle receipt over the new one, 
 This is [Homebrew/brew#24098](https://github.com/Homebrew/brew/pull/24098), merged to `main` after 7.0.6.  
 On 7.0.7, delete this patch if `Tab.clear_cache` already follows `build` in `formula_installer.rb`.
 
+`0009-manual-fetch-command.patch`  
+`brew fetch --print-command` prints a command that fetches that file or git repo into Homebrew's cache.  
+`$HOMEBREW_FETCH_PRINT_COMMAND=1` does the same for every download.  
+Copy the command and run it when a download stalls. The next `brew fetch` then sees the file as already downloaded.
+
 ## caveats
 
 As you can see, there is no way yet to tie patches to a specific `brew` version.  
