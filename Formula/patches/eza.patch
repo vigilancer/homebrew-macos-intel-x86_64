@@ -1,0 +1,42 @@
+--- upstream/eza.rb
++++ Formula/eza.rb
+@@ -16,11 +16,15 @@
+     sha256 cellar: :any, x86_64_linux:      "246d2197c53ed155fa308c1da349f0c948f3a803642d0e40542abe769ba81894"
+   end
+ 
+-  depends_on "pandoc" => :build
+   depends_on "pkgconf" => :build
+   depends_on "rust" => :build
+   depends_on "libgit2"
+ 
++  resource "man" do
++    url "https://github.com/eza-community/eza/releases/download/v0.23.5/man-0.23.5.tar.gz"
++    sha256 "cbdae2ad79ae0ef1fd6a06f4644c90cef79a56353bc3bb7cf4663bb2831420f9"
++  end
++
+   deny_network_access!
+ 
+   def fetch
+@@ -36,17 +40,11 @@
+     fish_completion.install "completions/fish/eza.fish"
+     zsh_completion.install  "completions/zsh/_eza"
+ 
+-    args = %w[
+-      --standalone
+-      --from=markdown
+-      --to=man
+-    ]
+-    system "pandoc", *args, "man/eza.1.md", "-o", "eza.1"
+-    system "pandoc", *args, "man/eza_colors.5.md", "-o", "eza_colors.5"
+-    system "pandoc", *args, "man/eza_colors-explanation.5.md", "-o", "eza_colors-explanation.5"
+-
+-    man1.install buildpath.glob("*.1")
+-    man5.install buildpath.glob("*.5")
++    resource("man").stage do
++      man1.install "man-#{version}/eza.1"
++      man5.install "man-#{version}/eza_colors.5"
++      man5.install "man-#{version}/eza_colors-explanation.5"
++    end
+   end
+ 
+   test do
