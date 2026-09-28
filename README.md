@@ -24,6 +24,8 @@ rm patches/0004-odeprecated-silent.patch
 rm patches/0005-info-installed-dependents.patch
 rm patches/0006-info-recursive-runtime-names.patch
 rm patches/0007-info-verbose.patch
+rm patches/0008-clear-receipt-cache.patch
+rm patches/0009-manual-fetch-command.patch
 ```
 
 3. brew your own
@@ -62,7 +64,10 @@ HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
 HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
 HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
 HOMEBREW_INFO_VERBOSE=1                           # patch 0007
+HOMEBREW_FETCH_PRINT_COMMAND=1                    # patch 0009
 ```
+
+   `0005`, `0006`, and `0008` have no switch. They apply as long as the patch is installed.
 
 5. pick up a newer patched tag
 
@@ -82,10 +87,12 @@ brew config
 
 `0001-unsupported-os-silent.patch`  
 Makes it possible to disable the annoying warning that Intel macOS is not supported.  
+Set `$HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS`.  
 Take that Apple Silicon!
 
 `0002-build-from-source.patch`  
-Adds a switch to build _everything_ from source.  
+Adds `$HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE`.  
+If it is set, build _everything_ from source.  
 Yes, including dependencies.  
 Yes, even when bottles are available.
 
@@ -94,7 +101,7 @@ Now it is possible to create a local overlay for any formula.
 No need to mess with taps.  
 No need to wait for upstream fixes.  
 Just create a formula with the same name locally and brew will treat it like a regular formula.  
-Place your overlays in `$HOME/brew-self/Formula/`.  
+Set `$HOMEBREW_FORMULA_OVERLAY` to that directory, for example `$HOME/brew-self/Formula`.  
 `brew fetch` and `brew install` may reload that file by path; the overlay directory is allowed, and the formula stays in `homebrew/core`.
 
 `0004-odeprecated-silent.patch`  
@@ -103,12 +110,14 @@ If it is set, Homebrew does not warn about environment variables marked `odeprec
 Variables marked `odisabled: true` still warn.
 
 `0005-info-installed-dependents.patch`  
+No switch.  
 `brew info` lists installed formulae that depend on this one, grouped by how they depend on it:  
 Required, Recommended, Optional, Build, Test, Implicit.  
 Empty groups are skipped. Casks are not included.  
 Only shown in a terminal, same as the old one-line dependent count.
 
 `0006-info-recursive-runtime-names.patch`  
+No switch.  
 `brew info` prints the names in `Recursive Runtime`, not only a count.  
 Each name is marked installed or missing.  
 The list is the runtime tree recorded when the formula was installed.
@@ -118,6 +127,7 @@ Adds `$HOMEBREW_INFO_VERBOSE`.
 If it is set, `brew info` shows the same output as `brew info --verbose`.
 
 `0008-clear-receipt-cache.patch`  
+No switch.  
 After a source build, drops the cached install receipt before it is read back.  
 Otherwise `brew reinstall` writes the previous bottle receipt over the new one, and `brew info` still says "Poured from bottle".  
 This is [Homebrew/brew#24098](https://github.com/Homebrew/brew/pull/24098), merged to `main` after 7.0.6.  
