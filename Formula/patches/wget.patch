@@ -1,0 +1,46 @@
+--- upstream/wget.rb
++++ Formula/wget.rb
+@@ -2,21 +2,12 @@
+   desc "Internet file retriever"
+   homepage "https://www.gnu.org/software/wget/"
+   license "GPL-3.0-or-later"
+-  revision 2
++  revision 3
+   compatibility_version 1
+ 
+-  stable do
+-    url "https://ftpmirror.gnu.org/wget/wget-1.25.0.tar.gz"
+-    mirror "https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz"
+-    sha256 "766e48423e79359ea31e41db9e5c289675947a7fcf2efdcedb726ac9d0da3784"
+-
+-    # Backport support for OpenSSL 4
+-    patch do
+-      url "https://gitlab.com/gnuwget/wget/-/commit/aaec8d52a06c46eeab570b8ef3e10760ebc66b7a.diff"
+-      sha256 "96aa2923ce9a12dbc2c82969705da4f72792816b087dbee19c04cd2cb2769ea8"
+-      type :backport
+-    end
+-  end
++  url "https://ftpmirror.gnu.org/wget/wget-1.25.0.tar.gz"
++  mirror "https://ftp.gnu.org/gnu/wget/wget-1.25.0.tar.gz"
++  sha256 "766e48423e79359ea31e41db9e5c289675947a7fcf2efdcedb726ac9d0da3784"
+ 
+   bottle do
+     sha256 arm64_golden_gate: "d89ea78fbc8ec79a80d52c7dcaa28e50c2bb435acd1470ee2cae4ef7646eff7e"
+@@ -37,7 +28,7 @@
+   depends_on "pkgconf" => :build
+   depends_on "libidn2"
+   depends_on "libpsl"
+-  depends_on "openssl@4"
++  depends_on "openssl@3"
+ 
+   on_macos do
+     depends_on "gettext"
+@@ -56,7 +47,7 @@
+     system "./bootstrap", "--skip-po" if build.head?
+     system "./configure", "--sysconfdir=#{etc}",
+                           "--with-ssl=openssl",
+-                          "--with-libssl-prefix=#{formula_opt_prefix("openssl@4")}",
++                          "--with-libssl-prefix=#{formula_opt_prefix("openssl@3")}",
+                           "--disable-pcre",
+                           "--disable-pcre2",
+                           "--with-libpsl",
