@@ -1,0 +1,28 @@
+--- upstream/watchman.rb
++++ Formula/watchman.rb
+@@ -19,7 +19,6 @@
+   depends_on "cmake" => :build
+   depends_on "cpptoml" => :build
+   depends_on "gflags" => :build
+-  depends_on "googletest" => :build
+   depends_on "libevent" => :build
+   depends_on "mvfst" => :build
+   depends_on "openssl@4" => :build
+@@ -50,6 +49,17 @@
+   end
+ 
+   def install
++    # Unit tests are part of the default build and are the only users of googletest.
++    inreplace "CMakeLists.txt" do |s|
++      s.gsub! "find_package(GMock MODULE REQUIRED)\n" \
++              "include_directories(${GMOCK_INCLUDEDIR} ${LIBGMOCK_INCLUDE_DIR})\n" \
++              "include(GoogleTest)\n" \
++              "enable_testing()\n",
++              ""
++      s.gsub!(/\nlist\(APPEND testsupport_sources.*?target_link_libraries\(testsupport log string jansson third_party_deps\)\n/m, "\n")
++      s.gsub!(/\nset\(tests\).*\z/m, "\n")
++    end
++
+     # Drop the `GlobPath` C++ type as its GPL-2.0 header is not mirrored to this repository
+     # https://github.com/facebook/watchman/issues/1355
+     inreplace "eden/fs/service/eden.thrift" do |s|
