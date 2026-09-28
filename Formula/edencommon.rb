@@ -1,0 +1,93 @@
+class Edencommon < Formula
+  desc "Shared library for Watchman and Eden projects"
+  homepage "https://github.com/facebookexperimental/edencommon"
+  url "https://github.com/facebookexperimental/edencommon/archive/refs/tags/v2026.09.21.00.tar.gz"
+  sha256 "f7d3012cd3fbde90dda2d9ef476167dd71448894afe2c2ef4e78553dd1dedd9d"
+  license "MIT"
+  compatibility_version 1
+  head "https://github.com/facebookexperimental/edencommon.git", branch: "main"
+
+  bottle do
+    sha256 cellar: :any, arm64_golden_gate: "77939fd41b4923c987d29bd85737fa085a694981a29f13fb09969de39873a8f4"
+    sha256 cellar: :any, arm64_tahoe:       "94a77e098baa7c7f4c3a1e326200e914a31046d3b0f02d30e860b7fdc73a9a28"
+    sha256 cellar: :any, arm64_sequoia:     "29790a434b3ebacd29239fdcf3f30656b606578df7150aed04ce862c1bf9adc9"
+    sha256 cellar: :any, arm64_linux:       "6e80d2c6bc5501b58d7167265c89c6d12d42971c32f277a9fe1592010f850e49"
+    sha256 cellar: :any, x86_64_linux:      "7d409d8a8e58cc0f45b0a5f022984648e64e77871b4081ad0f9904f539a54e00"
+  end
+
+  depends_on "cmake" => :build
+  depends_on "fbthrift" => :build
+  depends_on "gflags" => :build
+  depends_on "glog" => :build
+  depends_on "mvfst" => :build
+  depends_on "wangle" => :build
+  depends_on "boost"
+  depends_on "fb303"
+  depends_on "fmt"
+  depends_on "folly"
+
+  # GCC 13 libstdc++ no longer pulls in <string> via <string_view>.
+  # PR ref: https://github.com/facebookexperimental/edencommon/pull/32
+  patch do
+    url "https://github.com/facebookexperimental/edencommon/commit/7dc082da238446cde535b03370be0b709701b7ac.patch?full_index=1"
+    sha256 "1becb3b9bcba13f19cb697baa015bece72b0330e4beae6db5a459f4e6fbff5a5"
+    type :unofficial
+    resolves "https://github.com/facebookexperimental/edencommon/pull/32"
+  end
+
+  def install
+    # Fix "Process terminated due to timeout" by allowing a longer timeout.
+    # Related: https://gitlab.kitware.com/cmake/cmake/-/issues/26773
+    test_cmakelists = %w[
+      eden/common/os/test/CMakeLists.txt
+      eden/common/utils/test/CMakeLists.txt
+    ]
+    inreplace test_cmakelists, /(gtest_discover_tests\(.*)\)/, "\\1 DISCOVERY_TIMEOUT 60)"
+
+    # Avoid having to build FBThrift py library
+    inreplace "CMakeLists.txt" do |s|
+      s.gsub! "COMPONENTS cpp2 py)", "COMPONENTS cpp2)"
+      s.gsub! "find_package(GMock MODULE REQUIRED)\n", ""
+      s.gsub! "include_directories(${GMOCK_INCLUDEDIR} ${LIBGMOCK_INCLUDE_DIR})\n", ""
+      s.gsub! "include(GoogleTest)\n", ""
+      s.gsub! "enable_testing()\n", ""
+      s.gsub! "add_subdirectory(eden/common/testharness)\n", ""
+    end
+    inreplace "eden/common/os/CMakeLists.txt", "add_subdirectory(test)\n", ""
+    inreplace "eden/common/utils/CMakeLists.txt", "add_subdirectory(test)\n", ""
+
+    shared_args = %W[
+      -DCMAKE_CXX_STANDARD=20
+      -DBUILD_SHARED_LIBS=ON
+      -DCMAKE_INSTALL_RPATH=#{rpath}
+    ]
+    shared_args << "-DCMAKE_SHARED_LINKER_FLAGS=-Wl,-undefined,dynamic_lookup -Wl,-dead_strip_dylibs" if OS.mac?
+
+    system "cmake", "-S", ".", "-B", "_build", *shared_args, *std_cmake_args
+    system "cmake", "--build", "_build"
+    system "cmake", "--install", "_build"
+  end
+
+  test do
+    (testpath/"test.cc").write <<~CPP
+      #include <eden/common/utils/ProcessInfo.h>
+      #include <cstdlib>
+      #include <iostream>
+
+      using namespace facebook::eden;
+
+      int main(int argc, char **argv) {
+        if (argc <= 1) return 1;
+        int pid = std::atoi(argv[1]);
+        std::cout << readProcessName(pid) << std::endl;
+        return 0;
+      }
+    CPP
+
+    system ENV.cxx, "-std=c++20", "-I#{include}", "test.cc",
+                    "-L#{lib}", "-L#{formula_opt_lib("folly")}",
+                    "-L#{formula_opt_lib("boost")}", "-L#{formula_opt_lib("glog")}", "-L#{formula_opt_lib("fmt")}",
+                    "-ledencommon_utils", "-lfolly", "-lfmt", "-lboost_context", "-lglog", "-o", "test"
+    assert_match "ruby", shell_output("./test #{Process.pid}")
+  end
+end

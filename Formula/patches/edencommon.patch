@@ -1,0 +1,28 @@
+--- upstream/edencommon.rb
++++ Formula/edencommon.rb
+@@ -19,7 +19,6 @@
+   depends_on "fbthrift" => :build
+   depends_on "gflags" => :build
+   depends_on "glog" => :build
+-  depends_on "googletest" => :build
+   depends_on "mvfst" => :build
+   depends_on "wangle" => :build
+   depends_on "boost"
+@@ -46,7 +45,16 @@
+     inreplace test_cmakelists, /(gtest_discover_tests\(.*)\)/, "\\1 DISCOVERY_TIMEOUT 60)"
+ 
+     # Avoid having to build FBThrift py library
+-    inreplace "CMakeLists.txt", "COMPONENTS cpp2 py)", "COMPONENTS cpp2)"
++    inreplace "CMakeLists.txt" do |s|
++      s.gsub! "COMPONENTS cpp2 py)", "COMPONENTS cpp2)"
++      s.gsub! "find_package(GMock MODULE REQUIRED)\n", ""
++      s.gsub! "include_directories(${GMOCK_INCLUDEDIR} ${LIBGMOCK_INCLUDE_DIR})\n", ""
++      s.gsub! "include(GoogleTest)\n", ""
++      s.gsub! "enable_testing()\n", ""
++      s.gsub! "add_subdirectory(eden/common/testharness)\n", ""
++    end
++    inreplace "eden/common/os/CMakeLists.txt", "add_subdirectory(test)\n", ""
++    inreplace "eden/common/utils/CMakeLists.txt", "add_subdirectory(test)\n", ""
+ 
+     shared_args = %W[
+       -DCMAKE_CXX_STANDARD=20
