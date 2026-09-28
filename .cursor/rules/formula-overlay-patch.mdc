@@ -1,0 +1,17 @@
+---
+description: При создании или правке overlay сразу обновлять patch-файл
+alwaysApply: true
+---
+
+# Overlay и patch-файл
+
+`Formula/<name>.rb` — то, что грузит Homebrew. `Formula/patches/<name>.patch` — diff от апстримного Ruby к этому файлу. Метки: `upstream/<name>.rb` и `Formula/<name>.rb`.
+
+Создал или изменил `Formula/<name>.rb` — в том же изменении пересобери `Formula/patches/<name>.patch`. Не заканчивай задачу, пока патча нет или он не совпадает с формулой.
+
+```sh
+diff -u --label upstream/<name>.rb --label Formula/<name>.rb \
+  upstream.rb Formula/<name>.rb > Formula/patches/<name>.patch
+```
+
+Патч должен чисто накладываться на апстрим и давать текущий `Formula/<name>.rb`. `patch -R` по формуле возвращает апстрим.

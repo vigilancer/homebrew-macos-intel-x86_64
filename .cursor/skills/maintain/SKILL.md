@@ -95,8 +95,12 @@ applied to the upstream Ruby produces that file. `patch -R` on
 `Formula/<name>.rb` restores the upstream Ruby. The overlay loader only
 opens `Formula/<name>.rb`, so the patch directory is not formulae.
 
-A formula with no `Formula/patches/<name>.patch` is ours alone. Skip it.
-Do not download it and do not create a patch.
+Creating or editing `Formula/<name>.rb` includes regenerating
+`Formula/patches/<name>.patch` in the same change, before the task ends.
+Label the diff `upstream/<name>.rb` and `Formula/<name>.rb`.
+
+A formula with no `Formula/patches/<name>.patch` is ours alone. During a
+sync, skip it. Do not download it and do not create a patch for it.
 
 For each formula that has `Formula/patches/<name>.patch`:
 
