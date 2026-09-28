@@ -1,0 +1,28 @@
+--- upstream/portaudio.rb
++++ Formula/portaudio.rb
+@@ -1,20 +1,17 @@
+ class Portaudio < Formula
+   desc "Cross-platform library for audio I/O"
+   homepage "https://www.portaudio.com"
+-  url "https://files.portaudio.com/archives/pa_stable_v190700_20210406.tgz"
++  url "https://github.com/PortAudio/portaudio/archive/refs/tags/v19.7.0.tar.gz"
+   version "19.7.0"
+-  sha256 "47efbf42c77c19a05d22e627d42873e991ec0c1357219c0d74ce6a2948cb2def"
++  sha256 "5af29ba58bbdbb7bbcefaaecc77ec8fc413f0db6f4c4e286c40c3e1b83174fa0"
+   license "MIT"
+   version_scheme 1
+   head "https://github.com/PortAudio/portaudio.git", branch: "master"
+ 
+   livecheck do
+-    url "https://files.portaudio.com/download.html"
+-    regex(/href=.*?pa[._-]stable[._-]v?(\d+)(?:[._-]\d+)?\.t/i)
+-    strategy :page_match do |page, regex|
+-      # Modify filename version (190700) to match formula version (19.7.0)
+-      page.scan(regex).map { |match| match[0].scan(/\d{2}/).map(&:to_i).join(".") }
+-    end
++    url :stable
++    regex(/^v?(\d+(?:\.\d+)+)$/i)
++    strategy :github_latest
+   end
+ 
+   no_autobump! because: :incompatible_version_format
