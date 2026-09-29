@@ -24,7 +24,6 @@ rm patches/0004-odeprecated-silent.patch
 rm patches/0005-info-installed-dependents.patch
 rm patches/0006-info-recursive-runtime-names.patch
 rm patches/0007-info-verbose.patch
-rm patches/0008-clear-receipt-cache.patch
 rm patches/0009-manual-fetch-command.patch
 ```
 
@@ -43,8 +42,8 @@ rm patches/0009-manual-fetch-command.patch
    `./enable` writes `HOMEBREW_BREW_GIT_REMOTE` in `~/.homebrew/brew.env`
    (uncommenting it if it was commented, replacing it if it was already set)
    and points the install's `origin` at this checkout. It does not apply patches
-   and does not update the installed Homebrew. After that, `brew update` fetches
-   from the patched repo.
+   and does not update the installed Homebrew. After that, `brew update-reset`
+   fetches from the patched repo.
 
 ```sh
 ./enable
@@ -67,9 +66,13 @@ HOMEBREW_INFO_VERBOSE=1                           # patch 0007
 HOMEBREW_FETCH_PRINT_COMMAND=1                    # patch 0009
 ```
 
-   `0005`, `0006`, and `0008` have no switch. They apply as long as the patch is installed.
+   `0005` and `0006` have no switch. They apply as long as the patch is installed.
 
 5. pick up a newer patched tag
+
+   `./update-and-patch` only moves the checkout in this repo.
+   `brew update-reset` fetches that checkout into the installed Homebrew and checks out the moved tag.
+   Use it instead of `brew update`. Each run rewrites history, and `brew update` tries to rebase.
 
 ```sh
 ./update-and-patch && brew update-reset
@@ -126,19 +129,14 @@ The list is the runtime tree recorded when the formula was installed.
 Adds `$HOMEBREW_INFO_VERBOSE`.  
 If it is set, `brew info` shows the same output as `brew info --verbose`.
 
-`0008-clear-receipt-cache.patch`  
-No switch.  
-After a source build, drops the cached install receipt before it is read back.  
-Otherwise `brew reinstall` writes the previous bottle receipt over the new one, and `brew info` still says "Poured from bottle".  
-This is [Homebrew/brew#24098](https://github.com/Homebrew/brew/pull/24098), merged to `main` after 7.0.6.  
-On 7.0.7, delete this patch if `Tab.clear_cache` already follows `build` in `formula_installer.rb`.
-
 `0009-manual-fetch-command.patch`  
 `brew fetch --print-command` prints a command that fetches that file or git repo into Homebrew's cache.  
 `$HOMEBREW_FETCH_PRINT_COMMAND=1` does the same for every download.  
 Copy the command and run it when a download stalls. The next `brew fetch` then sees the file as already downloaded.
 
 ## caveats
+
+`0008-clear-receipt-cache.patch` was removed on 7.0.7. Upstream already runs `Tab.clear_cache` right after `build`.
 
 As you can see, there is no way yet to tie patches to a specific `brew` version.  
 Upstream changes can break the patches.  
