@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+
+manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+brew=$manage/brew
+bare=$manage/.bare
+
+if [ ! -d "$bare" ]; then
+  echo "error: .bare is missing" >&2
+  exit 1
+fi
+
+latest=$(
+  git -C "$bare" for-each-ref --format='%(refname:strip=2)' refs/upstream-tags |
+    sed -n 's/^\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)$/\1/p' |
+    sort -V |
+    tail -n 1
+)
+if [ -z "$latest" ]; then
+  echo "error: no upstream X.Y.Z tag in .bare" >&2
+  exit 1
+fi
+
+upstream_ref="refs/upstream-tags/${latest}"
+upstream_commit=$(git -C "$bare" rev-parse "${upstream_ref}^{}")
+git -C "$bare" update-ref "refs/tags/${latest}" "$upstream_ref"
+
+if [ -e "$brew/.git" ]; then
+  git -C "$brew" checkout -f -B main "$upstream_commit"
+else
+  git -C "$bare" update-ref refs/heads/main "$upstream_commit"
+fi
+
+echo "main and ${latest} are at ${upstream_commit}"

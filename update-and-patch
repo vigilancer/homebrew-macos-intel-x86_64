@@ -135,7 +135,7 @@ IFS='
 '
 for name in $patches; do
   git -C "$brew" apply --index "$patchdir/$name"
-  git_as_patch commit -m "Apply ${name} on ${latest}"
+  git_as_patch commit -m "evil: Apply ${name} on ${latest}"
 done
 IFS=$oldifs
 move_tag
