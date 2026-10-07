@@ -1,4 +1,6 @@
 #!/bin/sh
+# Point the installed Homebrew origin at HOMEBREW_BREW_GIT_REMOTE from brew.env.
+# Does not change brew.env and does not update the install.
 set -eu
 
 env_file() {

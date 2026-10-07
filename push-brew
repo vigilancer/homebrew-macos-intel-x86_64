@@ -1,0 +1,30 @@
+#!/bin/sh
+# Force-push the brew submodule's main and every tag to origin.
+# Tags that exist on origin but not in the submodule are deleted there.
+set -eu
+
+manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+sub=$manage/brew
+
+export GIT_TERMINAL_PROMPT=0
+
+if [ ! -e "$sub/.git" ]; then
+  echo "error: $sub is not the evil-brew submodule" >&2
+  exit 1
+fi
+
+git -C "$sub" push --force origin main
+git -C "$sub" push --force origin --tags
+
+git -C "$sub" ls-remote --tags origin | while read -r _ ref; do
+  case "$ref" in
+    *'^{}') continue ;;
+  esac
+  tag=${ref#refs/tags/}
+  if git -C "$sub" show-ref --verify --quiet "refs/tags/${tag}"; then
+    continue
+  fi
+  git -C "$sub" push origin ":refs/tags/${tag}"
+done
+
+echo "pushed main and tags from $sub"

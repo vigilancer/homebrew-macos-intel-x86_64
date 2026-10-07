@@ -1,8 +1,11 @@
 #!/bin/sh
+# Put the latest X.Y.Z tag and main back on the unpatched upstream commit,
+# then replace the brew submodule with that state.
 set -eu
 
 manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-brew=$manage/brew
+work=$manage/.work
+sub=$manage/brew
 bare=$manage/.bare
 
 if [ ! -d "$bare" ]; then
@@ -25,10 +28,25 @@ upstream_ref="refs/upstream-tags/${latest}"
 upstream_commit=$(git -C "$bare" rev-parse "${upstream_ref}^{}")
 git -C "$bare" update-ref "refs/tags/${latest}" "$upstream_ref"
 
-if [ -e "$brew/.git" ]; then
-  git -C "$brew" checkout -f -B main "$upstream_commit"
+if [ -e "$work/.git" ]; then
+  git -C "$work" checkout -f -B main "$upstream_commit"
 else
   git -C "$bare" update-ref refs/heads/main "$upstream_commit"
 fi
+
+if [ ! -e "$sub/.git" ]; then
+  echo "error: $sub is not the evil-brew submodule" >&2
+  exit 1
+fi
+git -C "$sub" fetch --force --prune --prune-tags "$bare" \
+  '+refs/heads/main:refs/patch-tmp/main' \
+  '+refs/tags/*:refs/tags/*'
+git -C "$sub" checkout -f -B main refs/patch-tmp/main
+git -C "$sub" clean -fd
+git -C "$sub" update-ref -d refs/patch-tmp/main
+for branch in $(git -C "$sub" for-each-ref --format='%(refname:short)' refs/heads); do
+  [ "$branch" = main ] && continue
+  git -C "$sub" branch -D "$branch"
+done
 
 echo "main and ${latest} are at ${upstream_commit}"

@@ -1,8 +1,11 @@
 #!/bin/sh
+# Fetch the latest Homebrew tag into .bare, apply patches, move that tag
+# onto the patched commit, and replace the brew submodule with the result.
 set -eu
 
 manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-brew=$manage/brew
+work=$manage/.work
+sub=$manage/brew
 bare=$manage/.bare
 upstream=https://github.com/Homebrew/brew
 patchdir=$manage/patches
@@ -17,8 +20,27 @@ copy_upstream_tags() {
     done
 }
 
+# The submodule keeps its own objects. Replacing main and every tag from .bare
+# moves only the commits that differ; the shared brew history stays put.
+replace_submodule() {
+  if [ ! -e "$sub/.git" ]; then
+    echo "error: $sub is not the evil-brew submodule" >&2
+    exit 1
+  fi
+  git -C "$sub" fetch --force --prune --prune-tags "$bare" \
+    '+refs/heads/main:refs/patch-tmp/main' \
+    '+refs/tags/*:refs/tags/*'
+  git -C "$sub" checkout -f -B main refs/patch-tmp/main
+  git -C "$sub" clean -fd
+  git -C "$sub" update-ref -d refs/patch-tmp/main
+  for branch in $(git -C "$sub" for-each-ref --format='%(refname:short)' refs/heads); do
+    [ "$branch" = main ] && continue
+    git -C "$sub" branch -D "$branch"
+  done
+}
+
 if [ -d "$bare" ]; then
-  if ! git -C "$bare" fetch origin '+refs/tags/*:refs/upstream-tags/*'; then
+  if ! git -C "$bare" fetch "$upstream" '+refs/tags/*:refs/upstream-tags/*'; then
     echo "warning: could not fetch ${upstream}; continuing with tags already in .bare" >&2
   fi
 else
@@ -54,28 +76,28 @@ git_as_patch() {
   GIT_COMMITTER_EMAIL=none \
   GIT_AUTHOR_DATE="$upstream_date" \
   GIT_COMMITTER_DATE="$upstream_date" \
-    git -C "$brew" "$@"
+    git -C "$work" "$@"
 }
 
-is_brew_worktree() {
-  [ -e "$brew/.git" ] || return 1
-  common=$(git -C "$brew" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+is_worktree() {
+  [ -e "$work/.git" ] || return 1
+  common=$(git -C "$work" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
   bare_abs=$(CDPATH= cd -- "$bare" && pwd -P)
   [ "$common" = "$bare_abs" ]
 }
 
-if ! is_brew_worktree; then
+if ! is_worktree; then
   backup=
-  if [ -e "$brew" ]; then
+  if [ -e "$work" ]; then
     backup=$(mktemp -d "${TMPDIR:-/tmp}/brew-self-update.XXXXXX")
-    mv "$brew" "$backup/brew"
+    mv "$work" "$backup/work"
   fi
-  if ! git -C "$bare" worktree add -B main "$brew" "$upstream_commit"; then
+  if ! git -C "$bare" worktree add -B main "$work" "$upstream_commit"; then
     if [ -n "$backup" ]; then
-      mv "$backup/brew" "$brew"
+      mv "$backup/work" "$work"
       rm -rf "$backup"
     fi
-    echo "error: could not create brew worktree" >&2
+    echo "error: could not create .work worktree" >&2
     exit 1
   fi
   if [ -n "$backup" ]; then
@@ -92,32 +114,33 @@ It was moved on purpose and now points at this commit."
 
 # Homebrew tracks origin/main. The tag fetch does not create that branch.
 on_main() {
-  branch=$(git -C "$brew" symbolic-ref --short HEAD 2>/dev/null || true)
+  branch=$(git -C "$work" symbolic-ref --short HEAD 2>/dev/null || true)
   if [ -n "$branch" ] && [ "$branch" != main ]; then
-    git -C "$brew" branch -M main
+    git -C "$work" branch -M main
   fi
-  if git -C "$brew" show-ref --verify --quiet refs/heads/master; then
-    git -C "$brew" branch -D master
+  if git -C "$work" show-ref --verify --quiet refs/heads/master; then
+    git -C "$work" branch -D master
   fi
 }
 
-head=$(git -C "$brew" rev-parse --verify HEAD 2>/dev/null || true)
-tag_commit=$(git -C "$brew" rev-parse --verify "refs/tags/${latest}^{}" 2>/dev/null || true)
-head_date=$(git -C "$brew" log -1 --format=%cd --date=raw "$head" 2>/dev/null || true)
-if [ -z "$(git -C "$brew" status --porcelain)" ] &&
+head=$(git -C "$work" rev-parse --verify HEAD 2>/dev/null || true)
+tag_commit=$(git -C "$work" rev-parse --verify "refs/tags/${latest}^{}" 2>/dev/null || true)
+head_date=$(git -C "$work" log -1 --format=%cd --date=raw "$head" 2>/dev/null || true)
+if [ -z "$(git -C "$work" status --porcelain)" ] &&
    [ -n "$head" ] && [ "$head" != "$upstream_commit" ] && [ "$head" = "$tag_commit" ] &&
    [ "$head_date" = "$upstream_date" ] &&
-   git -C "$brew" merge-base --is-ancestor "$upstream_commit" "$head"
+   git -C "$work" merge-base --is-ancestor "$upstream_commit" "$head"
 then
   on_main
+  replace_submodule
   echo "brew is already ${latest} plus patches"
   exit 0
 fi
 
-if [ -n "$(git -C "$brew" status --porcelain)" ] || [ "$head" != "$upstream_commit" ]; then
-  git -C "$brew" checkout -B main
-  git -C "$brew" reset --hard "$upstream_commit"
-  git -C "$brew" clean -fd
+if [ -n "$(git -C "$work" status --porcelain)" ] || [ "$head" != "$upstream_commit" ]; then
+  git -C "$work" checkout -B main
+  git -C "$work" reset --hard "$upstream_commit"
+  git -C "$work" clean -fd
 fi
 
 set -- "$patchdir"/*.patch
@@ -134,10 +157,11 @@ oldifs=$IFS
 IFS='
 '
 for name in $patches; do
-  git -C "$brew" apply --index "$patchdir/$name"
+  git -C "$work" apply --index "$patchdir/$name"
   git_as_patch commit -m "evil: Apply ${name} on ${latest}"
 done
 IFS=$oldifs
 move_tag
 on_main
-echo "brew main moved to ${latest} plus patches"
+replace_submodule
+echo "brew submodule replaced with ${latest} plus patches"

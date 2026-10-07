@@ -2,17 +2,36 @@ diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
 index 4178549..4941b6f 100644
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -454,6 +454,10 @@ module Homebrew
+@@ -454,6 +454,11 @@ module Homebrew
                       "controls set through DSL usage inside formulae. Must be `allow` or `deny`. If no value is " \
                       "set through this environment variable or DSL usage, the default behaviour is `allow`.",
        },
 +      HOMEBREW_FORMULA_OVERLAY:                  {
 +        description: "A directory of formula files. If `<name>.rb` exists here, Homebrew uses that file " \
-+                     "instead of the API formula of the same name, including for `homebrew/core/<name>`.",
++                     "instead of the API formula of the same name, including for `homebrew/core/<name>`. " \
++                     "When unset, Homebrew uses `~/.homebrew/formula-overlays`. A missing directory is ignored.",
 +      },
        HOMEBREW_FORMULA_POSTINSTALL_NETWORK:      {
          description: "If set, controls network access to the sandbox for formulae postinstall. Overrides any " \
                       "controls set through DSL usage inside formulae. Must be `allow` or `deny`. If no value is " \
+@@ -1071,4 +1079,17 @@ module Homebrew
+       [concurrency, 1].max
+     end
++
++    sig { returns(String) }
++    def formula_overlay_path
++      raw = ENV.fetch("HOMEBREW_FORMULA_OVERLAY", "").presence
++      raw = "~/.homebrew/formula-overlays" if raw.blank?
++      File.expand_path(raw)
++    end
++
++    sig { returns(T.nilable(Pathname)) }
++    def formula_overlay_directory
++      directory = Pathname(formula_overlay_path)
++      directory if directory.directory?
++    end
+   end
+ end
 diff --git a/Library/Homebrew/formulary.rb b/Library/Homebrew/formulary.rb
 index 2edebfc..a512538 100644
 --- a/Library/Homebrew/formulary.rb
@@ -21,7 +40,7 @@ index 2edebfc..a512538 100644
          tap = Homebrew::API.tap_from_source_download(path)
        end
  
-+      if tap.nil? && (overlay = Homebrew::EnvConfig.formula_overlay).present? &&
++      if tap.nil? && (overlay = Homebrew::EnvConfig.formula_overlay_directory) &&
 +         ::Utils::Path.child_of?(overlay, path)
 +        tap = CoreTap.instance
 +      end
@@ -29,11 +48,11 @@ index 2edebfc..a512538 100644
        return if path.extname != ".rb"
  
        if path.parent.basename.to_s == ".brew"
-@@ -916,6 +921,36 @@ module Formulary
+@@ -916,6 +921,33 @@ module Formulary
      end
    end
  
-+  # Loads a formula file from HOMEBREW_FORMULA_OVERLAY before the API.
++  # Loads a formula file from the overlay directory before the API.
 +  class FromOverlayLoader < FormulaLoader
 +    sig {
 +      params(ref: T.any(String, Pathname, URI::Generic), from: T.nilable(Symbol), warn: T::Boolean)
@@ -42,11 +61,8 @@ index 2edebfc..a512538 100644
 +    def self.try_new(ref, from: nil, warn: false)
 +      return unless ref.is_a?(String)
 +
-+      overlay = Homebrew::EnvConfig.formula_overlay
-+      return if overlay.blank?
-+
-+      directory = Pathname(overlay)
-+      return unless directory.directory?
++      directory = Homebrew::EnvConfig.formula_overlay_directory
++      return if directory.nil?
 +
 +      name = ref[HOMEBREW_DEFAULT_TAP_FORMULA_REGEX, :name]
 +      return if name.blank?
@@ -66,7 +82,7 @@ index 2edebfc..a512538 100644
    # Load a formula from the API.
    class FromAPILoader < FormulaLoader
      sig {
-@@ -1233,6 +1263,7 @@ module Formulary
+@@ -1233,6 +1259,7 @@ module Formulary
      [
        FromBottleLoader,
        FromURILoader,
@@ -77,13 +93,36 @@ index 2edebfc..a512538 100644
 diff --git a/Library/Homebrew/utils/path.rb b/Library/Homebrew/utils/path.rb
 --- a/Library/Homebrew/utils/path.rb
 +++ b/Library/Homebrew/utils/path.rb
-@@ -250,6 +250,9 @@ module Utils
+@@ -250,6 +250,10 @@ module Utils
          trusted_package_root(Cask::Caskroom.path)
        end
  
-+      overlay = Homebrew::EnvConfig.formula_overlay
-+      allowed_paths << trusted_package_root(overlay) if overlay.present?
++      if (overlay = Homebrew::EnvConfig.formula_overlay_directory)
++        allowed_paths << trusted_package_root(overlay)
++      end
 +
        # Casks can also be loaded from local JSON files, not just Ruby.
        package_extnames = (package_type == :cask) ? %w[.rb .json] : %w[.rb]
        return true if package_extnames.none? { |ext| path_realpath.end_with?(ext) || path_string.end_with?(ext) }
+diff --git a/Library/Homebrew/system_config.rb b/Library/Homebrew/system_config.rb
+--- a/Library/Homebrew/system_config.rb
++++ b/Library/Homebrew/system_config.rb
+@@ -177,9 +177,16 @@ module Homebrew
+-      Homebrew::EnvConfig.non_default_variables.each do |env|
++      envs = Homebrew::EnvConfig.non_default_variables
++      envs << "HOMEBREW_FORMULA_OVERLAY" unless envs.include?("HOMEBREW_FORMULA_OVERLAY")
++      envs.sort.each do |env|
+         env_symbol = env.to_sym
+         hash = Homebrew::EnvConfig::ENVS.fetch(env_symbol)
+         value = Homebrew::EnvConfig.public_send(Homebrew::EnvConfig.env_method_name(env_symbol, hash))
+ 
++        if env == "HOMEBREW_FORMULA_OVERLAY"
++          out.puts "#{env}: #{Homebrew::EnvConfig.formula_overlay_path}"
++          next
++        end
++
+         if hash[:boolean]
+           out.puts "#{env}: #{value ? "set" : "false"}"
+           next
+         end
+

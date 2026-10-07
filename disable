@@ -1,4 +1,6 @@
 #!/bin/sh
+# Comment out HOMEBREW_BREW_GIT_REMOTE and put the installed Homebrew back
+# on the latest official tag stored in .bare.
 set -eu
 
 manage=$(CDPATH= cd -- "$(dirname "$0")" && pwd)

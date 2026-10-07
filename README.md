@@ -29,7 +29,7 @@ rm patches/0009-manual-fetch-command.patch
 
 3. brew your own
 
-   this will fetch the latest `brew` release with full history into `.bare` and check `brew` out as a worktree of the latest version tag, then apply patches to it. If `.bare` is already there and the fetch fails, it warns and continues with the tags it has.
+   this will fetch the latest `brew` release with full history into `.bare`, apply patches on that history, and replace the `brew` submodule with the result. If `.bare` is already there and the fetch fails, it warns and continues with the tags it has.
 
    brew? brew! ah, brew...
 
@@ -60,7 +60,7 @@ rm patches/0009-manual-fetch-command.patch
 ```sh
 HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
 HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
-HOMEBREW_FORMULA_OVERLAY=$HOME/brew-self/Formula  # patch 0003
+HOMEBREW_FORMULA_OVERLAY=/path/to/formulae       # patch 0003, optional
 HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
 HOMEBREW_INFO_VERBOSE=1                           # patch 0007
 HOMEBREW_FETCH_PRINT_COMMAND=1                    # patch 0009
@@ -104,7 +104,8 @@ Now it is possible to create a local overlay for any formula.
 No need to mess with taps.  
 No need to wait for upstream fixes.  
 Just create a formula with the same name locally and brew will treat it like a regular formula.  
-Set `$HOMEBREW_FORMULA_OVERLAY` to that directory, for example `$HOME/brew-self/Formula`.  
+The directory is `~/.homebrew/formula-overlays` unless `$HOMEBREW_FORMULA_OVERLAY` points somewhere else.  
+A missing directory is ignored.  
 `brew fetch` and `brew install` may reload that file by path; the overlay directory is allowed, and the formula stays in `homebrew/core`.
 
 `0004-odeprecated-silent.patch`  
