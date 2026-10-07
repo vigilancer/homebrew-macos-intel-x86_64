@@ -39,11 +39,11 @@ rm patches/0009-manual-fetch-command.patch
 
 4. point the installed Homebrew at this checkout
 
-   `./enable` writes `HOMEBREW_BREW_GIT_REMOTE` in `~/.homebrew/brew.env`
-   (uncommenting it if it was commented, replacing it if it was already set)
-   and points the install's `origin` at this checkout. It does not apply patches
-   and does not update the installed Homebrew. After that, `brew update-reset`
-   fetches from the patched repo.
+   `./enable` reads `HOMEBREW_BREW_GIT_REMOTE` from `~/.homebrew/brew.env` and
+   points the install's `origin` at that URL. It does not change `brew.env`,
+   does not apply patches, and does not update the installed Homebrew. After
+   that, `brew update-reset` fetches from the patched repo. Set the variable
+   yourself before running it.
 
 ```sh
 ./enable
