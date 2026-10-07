@@ -14,12 +14,13 @@ diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
 index f0647e802a..bc331dea36 100644
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -800,6 +800,10 @@ module Homebrew
+@@ -800,6 +800,11 @@ module Homebrew
          description: "If set, always assume `--verbose` when running commands.",
          boolean:     :set,
        },
-+      HOMEBREW_INFO_VERBOSE:                     {
-+        description: "If set, `brew info` shows the same output as `--verbose`.",
++      EVILBREW_INFO_VERBOSE:                     {
++        description: "If set, `brew info` shows the same output as `--verbose`. " \
++                     "Set by default. Set `EVILBREW_INFO_VERBOSE=` in `brew.env` to turn it off.",
 +        boolean:     true,
 +      },
        HOMEBREW_VERBOSE_USING_DOTS:               {
@@ -34,10 +35,20 @@ index 8c3b94f49c..1a9d836093 100644
      end
    end
 +
-+  it "enables --verbose when HOMEBREW_INFO_VERBOSE is set" do
-+    ENV["HOMEBREW_INFO_VERBOSE"] = "1"
++  it "enables --verbose when EVILBREW_INFO_VERBOSE is set" do
++    ENV["EVILBREW_INFO_VERBOSE"] = "1"
 +    expect(described_class.new([]).args.verbose?).to be true
 +  ensure
-+    ENV.delete("HOMEBREW_INFO_VERBOSE")
++    ENV.delete("EVILBREW_INFO_VERBOSE")
 +  end
  end
+diff --git a/bin/brew b/bin/brew
+--- a/bin/brew
++++ b/bin/brew
+@@ -128,5 +128,6 @@ BIN_BREW_EXPORTED_VARS_REGEX="^(${BIN_BREW_EXPORTED_VARS_REGEX%|})(=|$)"
+ EVILBREW_DEFAULT_ON=(
+   EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS
+   EVILBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE
+   EVILBREW_ODEPRECATED_AND_I_DONT_CARE
++  EVILBREW_INFO_VERBOSE
+ )

@@ -55,17 +55,17 @@ rm patches/0009-manual-fetch-command.patch
 ./disable
 ```
 
-   The other switches still go in `brew.env` yourself:
+   The switches are already on. To turn one off, set it empty in `brew.env`:
 
 ```sh
-HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=1           # patch 0001
-HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=1      # patch 0002
-HOMEBREW_FORMULA_OVERLAY=/path/to/formulae       # patch 0003, optional
-HOMEBREW_ODEPRECATED_AND_I_DONT_CARE=1           # patch 0004
-HOMEBREW_INFO_VERBOSE=1                           # patch 0007
-HOMEBREW_FETCH_PRINT_COMMAND=1                    # patch 0009
+EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=        # patch 0001
+EVILBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=   # patch 0002
+EVILBREW_ODEPRECATED_AND_I_DONT_CARE=        # patch 0004
+EVILBREW_INFO_VERBOSE=                        # patch 0007
+EVILBREW_FETCH_PRINT_COMMAND=                 # patch 0009
 ```
 
+   `EVILBREW_FORMULA_OVERLAY` only overrides the overlay directory. The overlay is already on.  
    `0005` and `0006` have no switch. They apply as long as the patch is installed.
 
 5. pick up a newer patched tag
@@ -89,29 +89,31 @@ brew config
 ## short overview of patches
 
 `0001-unsupported-os-silent.patch`  
-Makes it possible to disable the annoying warning that Intel macOS is not supported.  
-Set `$HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS`.  
+The warning that Intel macOS is not supported stays off.  
+`EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS` is set for you.  
+To bring the warning back, set `EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=` in `brew.env`.
+
 Take that Apple Silicon!
 
 `0002-build-from-source.patch`  
-Adds `$HOMEBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE`.  
-If it is set, build _everything_ from source.  
-Yes, including dependencies.  
-Yes, even when bottles are available.
+Builds _everything_ from source, including dependencies, even when bottles are available.  
+`EVILBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE` is set for you.  
+Set `EVILBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE=` in `brew.env` to use bottles again.
 
 `0003-formula-overlay.patch`  
 Now it is possible to create a local overlay for any formula.  
 No need to mess with taps.  
 No need to wait for upstream fixes.  
 Just create a formula with the same name locally and brew will treat it like a regular formula.  
-The directory is `~/.homebrew/formula-overlays` unless `$HOMEBREW_FORMULA_OVERLAY` points somewhere else.  
+The directory is `~/.homebrew/formula-overlays` unless `$EVILBREW_FORMULA_OVERLAY` points somewhere else.  
 A missing directory is ignored.  
 `brew fetch` and `brew install` may reload that file by path; the overlay directory is allowed, and the formula stays in `homebrew/core`.
 
 `0004-odeprecated-silent.patch`  
-Adds `$HOMEBREW_ODEPRECATED_AND_I_DONT_CARE`.  
-If it is set, Homebrew does not warn about environment variables marked `odeprecated: true`.  
-Variables marked `odisabled: true` still warn.
+Homebrew does not warn about environment variables marked `odeprecated: true`.  
+Variables marked `odisabled: true` still warn.  
+`EVILBREW_ODEPRECATED_AND_I_DONT_CARE` is set for you.  
+Set `EVILBREW_ODEPRECATED_AND_I_DONT_CARE=` in `brew.env` to show those warnings again.
 
 `0005-info-installed-dependents.patch`  
 No switch.  
@@ -127,12 +129,15 @@ Each name is marked installed or missing.
 The list is the runtime tree recorded when the formula was installed.
 
 `0007-info-verbose.patch`  
-Adds `$HOMEBREW_INFO_VERBOSE`.  
-If it is set, `brew info` shows the same output as `brew info --verbose`.
+`brew info` shows the same output as `brew info --verbose`.  
+`EVILBREW_INFO_VERBOSE` is set for you.  
+Set `EVILBREW_INFO_VERBOSE=` in `brew.env` to turn that off.
 
 `0009-manual-fetch-command.patch`  
-`brew fetch --print-command` prints a command that fetches that file or git repo into Homebrew's cache.  
-`$HOMEBREW_FETCH_PRINT_COMMAND=1` does the same for every download.  
+Every download prints a command that fetches that file or git repo into Homebrew's cache.  
+`brew fetch --print-command` does the same.  
+`EVILBREW_FETCH_PRINT_COMMAND` is set for you.  
+Set `EVILBREW_FETCH_PRINT_COMMAND=` in `brew.env` to stop printing the command.  
 Copy the command and run it when a download stalls. The next `brew fetch` then sees the file as already downloaded.
 
 ## caveats

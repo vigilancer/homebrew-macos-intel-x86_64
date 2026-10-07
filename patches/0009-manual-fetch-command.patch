@@ -85,7 +85,7 @@ diff --git a/Library/Homebrew/cmd/fetch.rb b/Library/Homebrew/cmd/fetch.rb
                 description: "Also download dependencies for any listed <formula>."
 +        switch "--print-command",
 +               description: "Print a command that downloads each file or repository into the Homebrew cache. " \
-+                            "Also enabled by `$HOMEBREW_FETCH_PRINT_COMMAND`."
++                            "Also enabled by `$EVILBREW_FETCH_PRINT_COMMAND`, which is set by default."
          switch "-s", "--build-from-source",
                 description: "Download source packages rather than a bottle."
          switch "--build-bottle",
@@ -93,7 +93,7 @@ diff --git a/Library/Homebrew/cmd/fetch.rb b/Library/Homebrew/cmd/fetch.rb
  
        sig { override.void }
        def run
-+        ENV["HOMEBREW_FETCH_PRINT_COMMAND"] = "1" if args.print_command?
++        ENV["EVILBREW_FETCH_PRINT_COMMAND"] = "1" if args.print_command?
 +
          Formulary.enable_factory_cache!
  
@@ -101,14 +101,24 @@ diff --git a/Library/Homebrew/cmd/fetch.rb b/Library/Homebrew/cmd/fetch.rb
 diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -804,6 +804,10 @@ module Homebrew
-         description: "If set, `brew info` shows the same output as `--verbose`.",
+@@ -804,7 +805,12 @@ module Homebrew
+         description: "If set, `brew info` shows the same output as `--verbose`. " \
+                      "Set by default. Set `EVILBREW_INFO_VERBOSE=` in `brew.env` to turn it off.",
          boolean:     true,
        },
-+      HOMEBREW_FETCH_PRINT_COMMAND:              {
-+        description: "If set, print a command that downloads each file or repository into the Homebrew cache.",
++      EVILBREW_FETCH_PRINT_COMMAND:              {
++        description: "If set, print a command that downloads each file or repository into the Homebrew cache. " \
++                     "Set by default. Set `EVILBREW_FETCH_PRINT_COMMAND=` in `brew.env` to turn it off.",
 +        boolean:     true,
 +      },
        HOMEBREW_VERBOSE_USING_DOTS:               {
          description: "If set, verbose output will print a `.` no more than once a minute. This can be " \
                       "useful to avoid long-running Homebrew commands being killed due to no output.",
+diff --git a/bin/brew b/bin/brew
+--- a/bin/brew
++++ b/bin/brew
+@@ -131,3 +131,4 @@ BIN_BREW_EXPORTED_VARS_REGEX="^(${BIN_BREW_EXPORTED_VARS_REGEX%|})(=|$)"
+   EVILBREW_ODEPRECATED_AND_I_DONT_CARE
+   EVILBREW_INFO_VERBOSE
++  EVILBREW_FETCH_PRINT_COMMAND
+ )

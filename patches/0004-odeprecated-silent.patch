@@ -1,18 +1,20 @@
 diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -718,6 +718,10 @@
+@@ -718,6 +718,12 @@
                       "when auditing macOS formulae while on Linux.",
          boolean:     true,
        },
-+      HOMEBREW_ODEPRECATED_AND_I_DONT_CARE:       {
-+        description: "If set, do not warn that an environment variable with `odeprecated: true` is deprecated.",
++      EVILBREW_ODEPRECATED_AND_I_DONT_CARE:       {
++        description: "If set, do not warn that an environment variable with `odeprecated: true` is deprecated. " \
++                     "Set by default. Set `EVILBREW_ODEPRECATED_AND_I_DONT_CARE=` in `brew.env` " \
++                     "to show those warnings again.",
 +        boolean:     :set,
 +      },
        HOMEBREW_SKIP_OR_LATER_BOTTLES:            {
          description: "If set along with `$HOMEBREW_DEVELOPER`, do not use bottles from older versions " \
                       "of macOS. This is useful in development on new macOS versions.",
-@@ -974,6 +978,7 @@
+@@ -974,6 +980,7 @@
      sig { params(env: String, hash: T::Hash[Symbol, T.untyped]).void }
      def odeprecated_env(env, hash)
        return if !hash[:odeprecated] && !hash[:odisabled]
@@ -20,3 +22,12 @@ diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
        return unless env_deprecation_applies?(hash)
  
        replacement = hash[:replacement] if hash.key?(:replacement)
+diff --git a/bin/brew b/bin/brew
+--- a/bin/brew
++++ b/bin/brew
+@@ -128,4 +128,5 @@ BIN_BREW_EXPORTED_VARS_REGEX="^(${BIN_BREW_EXPORTED_VARS_REGEX%|})(=|$)"
+ EVILBREW_DEFAULT_ON=(
+   EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS
+   EVILBREW_BUILD_FROM_SOURCES_YOU_PHILISTINE
++  EVILBREW_ODEPRECATED_AND_I_DONT_CARE
+ )

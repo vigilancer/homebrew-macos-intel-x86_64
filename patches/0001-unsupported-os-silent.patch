@@ -2,17 +2,27 @@ diff --git a/Library/Homebrew/env_config.rb b/Library/Homebrew/env_config.rb
 index 8a3dc94..0e55b47 100644
 --- a/Library/Homebrew/env_config.rb
 +++ b/Library/Homebrew/env_config.rb
-@@ -701,6 +701,10 @@ module Homebrew
+@@ -701,6 +701,12 @@ module Homebrew
          default:     true,
          hidden:      true,
        },
-+      HOMEBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS:     {
-+        description: "If set, do not warn that Homebrew does not support this macOS version or architecture.",
++      EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS:         {
++        description: "If set, do not warn that Homebrew does not support this macOS version or architecture. " \
++                     "Set by default. Set `EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS=` in `brew.env` " \
++                     "to show the warning again.",
 +        boolean:     :set,
 +      },
        HOMEBREW_SIMULATE_MACOS_ON_LINUX:          {
          description: "If set, running Homebrew on Linux will simulate certain macOS code paths. This is useful " \
                       "when auditing macOS formulae while on Linux.",
+@@ -828,6 +834,6 @@ module Homebrew
+     def env_method_name(env, hash)
+       method_name = env.to_s
+-                       .sub(/^HOMEBREW_/, "")
++                       .sub(/^(HOMEBREW_|EVILBREW_)/, "")
+                        .downcase
+       method_name = "#{method_name}?" if hash[:boolean]
+       method_name
 diff --git a/Library/Homebrew/extend/os/mac/diagnostic.rb b/Library/Homebrew/extend/os/mac/diagnostic.rb
 index 5c697f8..4689fae 100644
 --- a/Library/Homebrew/extend/os/mac/diagnostic.rb
@@ -25,3 +35,50 @@ index 5c697f8..4689fae 100644
            return if ENV["HOMEBREW_INTEGRATION_TEST"]
  
            tier = 2
+diff --git a/bin/brew b/bin/brew
+--- a/bin/brew
++++ b/bin/brew
+@@ -125,6 +125,10 @@
+ BIN_BREW_EXPORTED_VARS_REGEX="^(${BIN_BREW_EXPORTED_VARS_REGEX%|})(=|$)"
+ 
+ # Load Homebrew's variable configuration files from disk.
++EVILBREW_DEFAULT_ON=(
++  EVILBREW_SHUT_UP_ABOUT_UNSUPPORTED_OS
++)
++
+ export_homebrew_env_file() {
+   local env_file
+ 
+@@ -133,8 +137,8 @@
+ 
+   while read -r line
+   do
+     # only load variables defined in env_config.rb
+-    [[ "${line}" =~ ^(HOMEBREW_|SUDO_ASKPASS=|(all|no|ftp|https?)_proxy=) ]] || continue
++    [[ "${line}" =~ ^(HOMEBREW_|EVILBREW_|SUDO_ASKPASS=|(all|no|ftp|https?)_proxy=) ]] || continue
+ 
+     # forbid overriding variables that are set in this file
+     [[ "${line}" =~ ${BIN_BREW_EXPORTED_VARS_REGEX} ]] && continue
+@@ -186,6 +190,17 @@
+ # analytics only samples user configuration. Sub-brews inherit the list.
+ # The matching Ruby is Homebrew::EnvConfig.user_set_variable? in
+ # Library/Homebrew/env_config.rb.
++# These stay on unless brew.env sets the name to empty.
++# Exported before the user-set snapshot so `brew config` lists them.
++default_on=""
++for default_on in "${EVILBREW_DEFAULT_ON[@]}"
++do
++  if [[ -z "${!default_on+x}" ]]
++  then
++    export "${default_on}=1"
++  fi
++done
++unset default_on EVILBREW_DEFAULT_ON
+ if [[ -z "${HOMEBREW_USER_SET_VARS+set}" ]]
+ then
+   for VAR in "${!HOMEBREW_@}"
+@@ -309,3 +324,3 @@
+ # Filter all but the specific variables.
+-for VAR in "${ENV_VAR_NAMES[@]}" "${!HOMEBREW_@}"
++for VAR in "${ENV_VAR_NAMES[@]}" "${!HOMEBREW_@}" "${!EVILBREW_@}"
+ do

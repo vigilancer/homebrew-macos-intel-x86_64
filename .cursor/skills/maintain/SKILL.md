@@ -84,7 +84,7 @@ Upstream is two records that name the same file:
 
 GitHub `main` can be ahead of `tap_git_head`. A local homebrew-core checkout
 can be stale or hand-edited. `brew cat` and `brew info` follow
-`HOMEBREW_FORMULA_OVERLAY` and show our file. None of those are upstream.
+`EVILBREW_FORMULA_OVERLAY` and show our file. None of those are upstream.
 
 If formulae.brew.sh or GitHub does not answer, or the downloaded bytes do
 not match `ruby_source_checksum`, stop the overlay task. Do not reconstruct

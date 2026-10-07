@@ -6,7 +6,7 @@ index 4178549..4941b6f 100644
                       "controls set through DSL usage inside formulae. Must be `allow` or `deny`. If no value is " \
                       "set through this environment variable or DSL usage, the default behaviour is `allow`.",
        },
-+      HOMEBREW_FORMULA_OVERLAY:                  {
++      EVILBREW_FORMULA_OVERLAY:                  {
 +        description: "A directory of formula files. If `<name>.rb` exists here, Homebrew uses that file " \
 +                     "instead of the API formula of the same name, including for `homebrew/core/<name>`. " \
 +                     "When unset, Homebrew uses `~/.homebrew/formula-overlays`. A missing directory is ignored.",
@@ -20,7 +20,7 @@ index 4178549..4941b6f 100644
 +
 +    sig { returns(String) }
 +    def formula_overlay_path
-+      raw = ENV.fetch("HOMEBREW_FORMULA_OVERLAY", "").presence
++      raw = ENV.fetch("EVILBREW_FORMULA_OVERLAY", "").presence
 +      raw = "~/.homebrew/formula-overlays" if raw.blank?
 +      File.expand_path(raw)
 +    end
@@ -110,13 +110,13 @@ diff --git a/Library/Homebrew/system_config.rb b/Library/Homebrew/system_config.
 @@ -177,9 +177,16 @@ module Homebrew
 -      Homebrew::EnvConfig.non_default_variables.each do |env|
 +      envs = Homebrew::EnvConfig.non_default_variables
-+      envs << "HOMEBREW_FORMULA_OVERLAY" unless envs.include?("HOMEBREW_FORMULA_OVERLAY")
++      envs << "EVILBREW_FORMULA_OVERLAY" unless envs.include?("EVILBREW_FORMULA_OVERLAY")
 +      envs.sort.each do |env|
          env_symbol = env.to_sym
          hash = Homebrew::EnvConfig::ENVS.fetch(env_symbol)
          value = Homebrew::EnvConfig.public_send(Homebrew::EnvConfig.env_method_name(env_symbol, hash))
  
-+        if env == "HOMEBREW_FORMULA_OVERLAY"
++        if env == "EVILBREW_FORMULA_OVERLAY"
 +          out.puts "#{env}: #{Homebrew::EnvConfig.formula_overlay_path}"
 +          next
 +        end
