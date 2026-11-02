@@ -82,8 +82,8 @@ index 2edebfc..a512538 100644
    # Load a formula from the API.
    class FromAPILoader < FormulaLoader
      sig {
-@@ -1233,6 +1259,7 @@ module Formulary
-     [
+@@ -1248,6 +1274,7 @@ module Formulary
+     loader_classes = [
        FromBottleLoader,
        FromURILoader,
 +      FromOverlayLoader,

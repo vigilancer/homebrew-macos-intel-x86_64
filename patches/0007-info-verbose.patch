@@ -30,8 +30,12 @@ diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/
 index 8c3b94f49c..1a9d836093 100644
 --- a/Library/Homebrew/test/cmd/info_spec.rb
 +++ b/Library/Homebrew/test/cmd/info_spec.rb
-@@ -1712,4 +1712,11 @@ RSpec.describe Homebrew::Cmd::Info do
-                "#{formula_path.relative_path_from(tap.path)}")
+@@ -2006,8 +2006,15 @@ RSpec.describe Homebrew::Cmd::Info do
+           expect(described_class.new(["homebrew/core/testball"])
+                                 .github_info(Formulary.factory("homebrew/core/testball")))
+             .to eq(formula_path.to_s)
+         end
+       end
      end
    end
 +

@@ -1,9 +1,9 @@
 diff --git a/Library/Homebrew/cmd/info.rb b/Library/Homebrew/cmd/info.rb
-index af384099e3..7f65bb6ebb 100644
+index 4db9504911..da8c697188 100644
 --- a/Library/Homebrew/cmd/info.rb
 +++ b/Library/Homebrew/cmd/info.rb
-@@ -211,29 +211,55 @@ module Homebrew
-           "#{missing_count} missing #{Formatter.error("✘")}"
+@@ -210,29 +210,55 @@ module Homebrew
+           "#{missing_count} #{missing_status}"
        end
  
 -      sig { params(full_name: String, name: String).returns(T::Array[String]) }
@@ -78,30 +78,30 @@ index af384099e3..7f65bb6ebb 100644
        end
  
        sig { params(formula: Formula).returns(T::Array[String]) }
-@@ -541,11 +567,6 @@ module Homebrew
+@@ -557,11 +583,6 @@ module Homebrew
+         else
+           tab_runtime_deps
          end
- 
-         tab_runtime_deps = kegs.last&.runtime_dependencies
 -        installed_dependents = if $stdout.tty? && kegs.any?
 -          self.class.installed_dependent_names(formula.full_name, formula.name)
 -        else
 -          [].freeze
 -        end
+         built_from_source = kegs.any? { |keg| !keg.tab.poured_from_bottle }
+         installs_from_source = !installed && self.class.formula_installs_from_source?(formula)
          dependency_lines = %w[build required recommended optional].filter_map do |type|
-           next if type == "build" &&
-                   (kegs.all? { |keg| keg.tab.poured_from_bottle } ||
-@@ -563,7 +584,7 @@ module Homebrew
+@@ -577,7 +598,7 @@ module Homebrew
              "#{decorate_dependencies(deps, tab_runtime_deps: tab_deps, mark_uninstalled:,
                                       formula_outdated: outdated, missing_library_deps:)}"
          end
--        if dependency_lines.present? || tab_runtime_deps.present? || installed_dependents.any?
-+        if dependency_lines.present? || tab_runtime_deps.present?
+-        if dependency_lines.present? || missing_libraries.any? || runtime_deps.present? || installed_dependents.any?
++        if dependency_lines.present? || missing_libraries.any? || runtime_deps.present?
            ohai "Dependencies"
            puts dependency_lines
            missing_library_names = missing_libraries.map { |lib| File.basename(lib) }.uniq
-@@ -582,12 +603,13 @@ module Homebrew
-             puts "Recursive Runtime (#{tab_runtime_deps.count}): " \
-                  "#{self.class.dependency_status_counts(installed_count, tab_runtime_deps.count)}"
+@@ -596,12 +617,13 @@ module Homebrew
+                  "#{self.class.dependency_status_counts(installed_count, runtime_deps.count,
+                                                         mark_uninstalled: !outdated)}"
            end
 -          if installed_dependents.any?
 -            if args.verbose?
@@ -120,10 +120,10 @@ index af384099e3..7f65bb6ebb 100644
          end
  
 diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/info_spec.rb
-index 3d54b06f55..9623300c40 100644
+index 6bb86e7351..8afa0d00c4 100644
 --- a/Library/Homebrew/test/cmd/info_spec.rb
 +++ b/Library/Homebrew/test/cmd/info_spec.rb
-@@ -557,7 +557,7 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -582,7 +582,7 @@ RSpec.describe Homebrew::Cmd::Info do
      expect(JSON.parse(output).first["tap"]).to eq("homebrew/core")
    end
  
@@ -132,7 +132,7 @@ index 3d54b06f55..9623300c40 100644
      allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
  
      info = described_class.new([])
-@@ -599,13 +599,21 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -624,13 +624,21 @@ RSpec.describe Homebrew::Cmd::Info do
      ]
      dependent_tab.write
  
@@ -144,7 +144,7 @@ index 3d54b06f55..9623300c40 100644
 +    allow(Formula).to receive(:installed).and_return([some_dependent])
 +
      allow(info).to receive(:github_info).with(formula).and_return("https://example.com/testball.rb")
-     allow(formula).to receive_messages(core_formula?: false, missing_library_linkage: [[], Set.new])
+     allow(formula).to receive_messages(core_formula?: false, missing_library_linkage: [[], Set.new], outdated?: false)
      allow(direct_dependency).to receive(:satisfied?).and_return(true)
  
      expected_output = Regexp.new(
@@ -155,7 +155,7 @@ index 3d54b06f55..9623300c40 100644
      )
      expect { info.info_formula(formula) }
        .to output(expected_output).to_stdout
-@@ -613,7 +621,7 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -638,7 +646,7 @@ RSpec.describe Homebrew::Cmd::Info do
        .and not_to_output.to_stderr
    end
  
@@ -164,7 +164,7 @@ index 3d54b06f55..9623300c40 100644
      allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
  
      info = described_class.new(["--verbose"])
-@@ -641,11 +649,20 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -666,11 +674,20 @@ RSpec.describe Homebrew::Cmd::Info do
        dependent_tab.write
      end
  

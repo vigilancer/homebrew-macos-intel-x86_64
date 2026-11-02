@@ -1,35 +1,33 @@
 diff --git a/Library/Homebrew/cmd/info.rb b/Library/Homebrew/cmd/info.rb
-index 7f65bb6ebb..49df60a459 100644
 --- a/Library/Homebrew/cmd/info.rb
 +++ b/Library/Homebrew/cmd/info.rb
-@@ -593,15 +593,16 @@ module Homebrew
+@@ -607,15 +607,15 @@
              puts "Missing libraries (#{missing_library_names.count}): #{decorated}"
            end
-           if tab_runtime_deps.present?
--            installed_count = tab_runtime_deps.count do |dep|
+           if runtime_deps.present?
+-            installed_count = runtime_deps.count do |dep|
 -              dep_name = dep["full_name"]&.then { Utils.name_from_full_name(it) }
 -              next false unless dep_name
-+            runtime_names = tab_runtime_deps.filter_map do |dep|
++            runtime_names = runtime_deps.filter_map do |dep|
 +              full_name = dep["full_name"]
 +              next if full_name.blank?
  
+-              Formula.rack_installed?(dep_name)
 +              dep_name = Utils.name_from_full_name(full_name)
-               rack = HOMEBREW_CELLAR/dep_name
--              rack.directory? && !rack.subdirs.empty?
-+              installed = rack.directory? && !rack.subdirs.empty?
-+              pretty_install_status(dep_name, installed:, mark_uninstalled: true, bold: false)
++              installed = Formula.rack_installed?(dep_name)
++              pretty_install_status(dep_name, installed:, mark_uninstalled: !outdated, bold: false)
              end
--            puts "Recursive Runtime (#{tab_runtime_deps.count}): " \
--                 "#{self.class.dependency_status_counts(installed_count, tab_runtime_deps.count)}"
+-            puts "Recursive Runtime (#{runtime_deps.count}): " \
+-                 "#{self.class.dependency_status_counts(installed_count, runtime_deps.count,
+-                                                        mark_uninstalled: !outdated)}"
 +            puts "Recursive Runtime (#{runtime_names.count}): #{runtime_names.join(", ")}"
            end
          end
  
 diff --git a/Library/Homebrew/test/cmd/info_spec.rb b/Library/Homebrew/test/cmd/info_spec.rb
-index 9623300c40..8c3b94f49c 100644
 --- a/Library/Homebrew/test/cmd/info_spec.rb
 +++ b/Library/Homebrew/test/cmd/info_spec.rb
-@@ -612,7 +612,7 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -637,7 +637,7 @@
  
      expected_output = Regexp.new(
        "==> Dependencies\nRequired \\(1\\): .*bar.*\n" \
@@ -38,7 +36,7 @@ index 9623300c40..8c3b94f49c 100644
        "==> Dependents\nRequired \\(1\\): some-dependent",
      )
      expect { info.info_formula(formula) }
-@@ -667,7 +667,7 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -692,7 +692,7 @@
        .and not_to_output.to_stderr
    end
  
@@ -47,7 +45,7 @@ index 9623300c40..8c3b94f49c 100644
      allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
  
      info = described_class.new([])
-@@ -699,7 +699,7 @@ RSpec.describe Homebrew::Cmd::Info do
+@@ -724,12 +724,12 @@
      allow(direct_dependency).to receive(:satisfied?).and_return(true)
  
      expect { info.info_formula(formula) }
@@ -56,3 +54,33 @@ index 9623300c40..8c3b94f49c 100644
        .and not_to_output(/missing/).to_stdout
        .and not_to_output.to_stderr
    end
+ 
+-  it "counts recursive runtime dependencies of the latest version when the formula is outdated" do
++  it "lists recursive runtime dependency names of the latest version when the formula is outdated" do
+     allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
+ 
+     info = described_class.new([])
+@@ -757,12 +757,12 @@
+                                                     .and_return(latest_runtime_deps)
+ 
+     expect { info.info_formula(formula) }
+-      .to output(/Recursive Runtime \(3\): 1 installed .*✔.*, 2 not installed\n/).to_stdout
++      .to output(/Recursive Runtime \(3\): installed-dep .*✔, missing-dep, new-dep\n/).to_stdout
+       .and not_to_output(/✘/).to_stdout
+       .and not_to_output.to_stderr
+   end
+ 
+-  it "counts recursive runtime dependencies of the latest version when the outdated keg's tab has none" do
++  it "lists recursive runtime dependency names of the latest version when the outdated keg's tab has none" do
+     allow_any_instance_of(StringIO).to receive(:tty?).and_return(true)
+ 
+     info = described_class.new([])
+@@ -785,7 +785,7 @@
+                                                     .and_return([Dependency.new("new-dep")])
+ 
+     expect { info.info_formula(formula) }
+-      .to output(/==> Dependencies\nRecursive Runtime \(1\): 0 installed .*✔.*, 1 not installed\n/).to_stdout
++      .to output(/==> Dependencies\nRecursive Runtime \(1\): new-dep\n/).to_stdout
+       .and not_to_output.to_stderr
+   end
+ 

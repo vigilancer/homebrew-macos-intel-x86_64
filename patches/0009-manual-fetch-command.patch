@@ -40,7 +40,7 @@ diff --git a/Library/Homebrew/download_strategy/git_download_strategy.rb b/Libra
 index 41cedff707..9078cb036c 100644
 --- a/Library/Homebrew/download_strategy/git_download_strategy.rb
 +++ b/Library/Homebrew/download_strategy/git_download_strategy.rb
-@@ -59,6 +59,18 @@ class GitDownloadStrategy < VCSDownloadStrategy
+@@ -68,5 +68,17 @@ class GitDownloadStrategy < VCSDownloadStrategy
        .success?
    end
  
@@ -58,7 +58,6 @@ index 41cedff707..9078cb036c 100644
 +
    sig { returns(T::Array[String]) }
    def clone_args
-     args = %w[clone]
 diff --git a/Library/Homebrew/downloadable.rb b/Library/Homebrew/downloadable.rb
 index 5a15ab77b5..72f9aa2fab 100644
 --- a/Library/Homebrew/downloadable.rb
@@ -79,17 +78,17 @@ index 5a15ab77b5..72f9aa2fab 100644
 diff --git a/Library/Homebrew/cmd/fetch.rb b/Library/Homebrew/cmd/fetch.rb
 --- a/Library/Homebrew/cmd/fetch.rb
 +++ b/Library/Homebrew/cmd/fetch.rb
-@@ -47,6 +47,9 @@ module Homebrew
+@@ -44,6 +44,9 @@ module Homebrew
                              "exponential backoff."
          switch "--deps",
                 description: "Also download dependencies for any listed <formula>."
 +        switch "--print-command",
 +               description: "Print a command that downloads each file or repository into the Homebrew cache. " \
 +                            "Also enabled by `$EVILBREW_FETCH_PRINT_COMMAND`, which is set by default."
+         switch "--test",
+                description: "Also download test resources and their patches for each <formula>."
          switch "-s", "--build-from-source",
-                description: "Download source packages rather than a bottle."
-         switch "--build-bottle",
-@@ -78,6 +81,8 @@ module Homebrew
+@@ -83,6 +86,8 @@ module Homebrew
  
        sig { override.void }
        def run
